@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.0
+// @version      1.0.1
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -14,4 +14,698 @@
 // @require      https://cdn.jsdelivr.net/npm/vue/dist/vue.js
 // ==/UserScript==
 
-'use strict';var _slicedToArray=function(){function b(c,d){var e=[],f=!0,g=!1,h=void 0;try{for(var k,j=c[Symbol.iterator]();!(f=(k=j.next()).done)&&(e.push(k.value),!(d&&e.length===d));f=!0);}catch(l){g=!0,h=l}finally{try{!f&&j['return']&&j['return']()}finally{if(g)throw h}}return e}return function(c,d){if(Array.isArray(c))return c;if(Symbol.iterator in Object(c))return b(c,d);throw new TypeError('Invalid attempt to destructure non-iterable instance')}}(),_typeof='function'==typeof Symbol&&'symbol'==typeof Symbol.iterator?function(b){return typeof b}:function(b){return b&&'function'==typeof Symbol&&b.constructor===Symbol&&b!==Symbol.prototype?'symbol':typeof b};(function(){'use strict';if(window.title='SCRIPT LOADED',document.getElementById('flashdungeon')){var cmd=async function(b,c){var d='http://damask.blutbad.ru/dungeon_xml.php'+querystring(Object.assign({cmd:b,nd:getCookie('nd')},c))+'&'+Math.random(),e=await fetch(d),f=await e.text();if(parser.validate(f))return parser.parse(f,{ignoreAttributes:!1,parseAttributeValue:!0,attributeNamePrefix:''});throw console.error('invalid xml data'),new Error('invalid xml data')},getCookie=function(b){var c=document.cookie.match(new RegExp('(?:^|; )'+b.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g,'\\$1')+'=([^;]*)'));return c?decodeURIComponent(c[1]):void 0},findPointObject=function(b,c,d){var _iteratorNormalCompletion2=!0,_didIteratorError2=!1,_iteratorError2=void 0;try{for(var f,e=Object.values(d.objects)[Symbol.iterator]();!(_iteratorNormalCompletion2=(f=e.next()).done);_iteratorNormalCompletion2=!0){var g=f.value,h=[];Array.isArray(g.object)?h=g.object:'object'==_typeof(g.object)&&(h=[g.object]);var _iteratorNormalCompletion3=!0,_didIteratorError3=!1,_iteratorError3=void 0;try{for(var k,l,j=h[Symbol.iterator]();!(_iteratorNormalCompletion3=(k=j.next()).done);_iteratorNormalCompletion3=!0)if(l=k.value,l.position.x==b&&l.position.y==c)return{x:l.position.x,y:l.position.y,type:l.type.value,id:l.id.value}}catch(n){_didIteratorError3=!0,_iteratorError3=n}finally{try{!_iteratorNormalCompletion3&&j.return&&j.return()}finally{if(_didIteratorError3)throw _iteratorError3}}}}catch(n){_didIteratorError2=!0,_iteratorError2=n}finally{try{!_iteratorNormalCompletion2&&e.return&&e.return()}finally{if(_didIteratorError2)throw _iteratorError2}}return null},getWays=function(b){var c={},_iteratorNormalCompletion4=!0,_didIteratorError4=!1,_iteratorError4=void 0;try{for(var e,d=b.ways.position[Symbol.iterator]();!(_iteratorNormalCompletion4=(e=d.next()).done);_iteratorNormalCompletion4=!0){var f=e.value,g=findPointObject(f.x,f.y,b);c[f.x+'_'+f.y]=g||f}}catch(h){_didIteratorError4=!0,_iteratorError4=h}finally{try{!_iteratorNormalCompletion4&&d.return&&d.return()}finally{if(_didIteratorError4)throw _iteratorError4}}return c},rnd=function(){var c,d;return 2==b.length?(c=0>=b.length?void 0:b[0],d=1>=b.length?void 0:b[1]):(c=0,d=0>=b.length?void 0:b[0]),Math.floor(Math.random()*d+c)},getDungeCfg=async function(){if(dungeCfg)return dungeCfg;var b=await cmd('getcfg');b.typedescription={};var _iteratorNormalCompletion5=!0,_didIteratorError5=!1,_iteratorError5=void 0;try{for(var d,_loop=function(){var e=d.value;if(e.action){var f=b.datastorage.actiondescription.action.find(function(g){return g.id==e.action.id});e.action.cmd=f.cmd}b.typedescription[e.id]=e},c=b.datastorage.typedescription.type[Symbol.iterator]();!(_iteratorNormalCompletion5=(d=c.next()).done);_iteratorNormalCompletion5=!0)_loop()}catch(e){_didIteratorError5=!0,_iteratorError5=e}finally{try{!_iteratorNormalCompletion5&&c.return&&c.return()}finally{if(_didIteratorError5)throw _iteratorError5}}return dungeCfg=b},querystring=function(b){return Object.keys(b).reduce(function(c,d,e){var f,g;return f=0===e?'?':'&',d=encodeURIComponent(d),g=encodeURIComponent(b[d]),[c,f,d,'=',g].join('')},'')},parseActions=function(b){return b.split('\n').map(function(c){var d=c.split(' ').filter(function(f){return f});if(d.length){var e=d[0].toLowerCase();if(actions.includes(e))return{name:e,params:d.splice(1)}}}).filter(function(c){return c})},validateXmlData=function(b){if(!b.world&&b.javascript)throw{message:'\u0412 \u043E\u0442\u0432\u0435\u0442\u0435 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u0442\u0441\u044F JS \u043A\u043E\u0434',name:'xmlDataJs',js:b.javascript.value};else if(!b.world)throw console.error('\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443 "'+command.name+'".',b),new Error('\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443 "'+command.name+'".');return b},rotateTo=async function(b){for(var d,c=1<arguments.length&&void 0!==arguments[1]?arguments[1]:'L';;)if(d=validateXmlData((await cmd('turnXML',{direction:c}))),d.world.hero.direction.value==b)return d},getWay=function(b,c,d){return b[c+'_'+d]},lookAround=function(b,c){var d={},f=[[-1,0,'w'],[1,0,'e'],[0,-1,'n'],[0,1,'s']],_iteratorNormalCompletion6=!0,_didIteratorError6=!1,_iteratorError6=void 0;try{for(var h,g=f[Symbol.iterator]();!(_iteratorNormalCompletion6=(h=g.next()).done);_iteratorNormalCompletion6=!0){var j=h.value,k=getWay(b,c.x+j[0],c.y+j[1]);k&&(0==k.type.indexOf('obj_')||0==k.type.indexOf('bot_'))&&(d[j[2]]=k)}}catch(l){_didIteratorError6=!0,_iteratorError6=l}finally{try{!_iteratorNormalCompletion6&&g.return&&g.return()}finally{if(_didIteratorError6)throw _iteratorError6}}return d},excBotCommand=async function(b){async function c(t){if(!g[t])e.direction.value!=t&&(console.log('\u0420\u0430\u0437\u0432\u043E\u0440\u0430\u0447\u0438\u0432\u0430\u0435\u043C\u0441\u044F '+b.name+'..'),await rotateTo(t)),console.log('\u0414\u0435\u043B\u0430\u0435\u043C \u0448\u0430\u0433'),await cmd('moveXML',{direction:'up'});else throw new Error('\u041D\u0435\u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E \u0441\u0434\u0435\u043B\u0430\u0442\u044C \u0448\u0430\u0433 '+b.name)}console.log('\u0432\u044B\u043F\u043E\u043B\u043D\u044F\u0435\u0442\u0441\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u0430:'+b.name);var d=validateXmlData((await cmd('updateXML'))),e=d.world.hero,f=getWays(d.world),g=lookAround(f,e.position),_iteratorNormalCompletion7=!0,_didIteratorError7=!1,_iteratorError7=void 0;try{for(var r,s,q=Object.values(g)[Symbol.iterator]();!(_iteratorNormalCompletion7=(r=q.next()).done);_iteratorNormalCompletion7=!0)if(s=r.value,0==s.type.indexOf('bot_'))throw{name:'BattleBegin',mob:s}}catch(t){_didIteratorError7=!0,_iteratorError7=t}finally{try{!_iteratorNormalCompletion7&&q.return&&q.return()}finally{if(_didIteratorError7)throw _iteratorError7}}switch(b.name){case'\u043D\u0430\u043B\u0435\u0432\u043E':await c('w');break;case'\u043D\u0430\u043F\u0440\u0430\u0432\u043E':await c('e');break;case'\u0432\u0432\u0435\u0440\u0445':await c('n');break;case'\u0432\u043D\u0438\u0437':await c('s');break;case'\u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C':var h=await getDungeCfg(),j=async function(t){if(t){var u=h.typedescription[t.type];u.action?(console.log('\u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u043C',t.type),await cmd(u.action.cmd,{objectId:t.id})):console.log(t.type,'\u043D\u0435\u043B\u044C\u0437\u044F \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C')}else console.warn('\u043D\u0435\u043B\u044C\u0437\u044F \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C \u043F\u0443\u0441\u0442\u043E\u0439 \u043E\u0431\u044A\u0435\u043A\u0442')};if(b.params.length){var _command$params=_slicedToArray(b.params,1),k=_command$params[0],l=null;'\u0441\u043B\u0435\u0432\u0430'===k?l=g.w:'\u0441\u043F\u0440\u0430\u0432\u0430'===k?l=g.e:'\u0441\u043D\u0438\u0437\u0443'===k?l=g.s:'\u0441\u0432\u0435\u0440\u0445\u0443'===k?l=g.n:void 0,await j(l)}else{var _iteratorNormalCompletion8=!0,_didIteratorError8=!1,_iteratorError8=void 0;try{for(var o,p,n=Object.values(g)[Symbol.iterator]();!(_iteratorNormalCompletion8=(o=n.next()).done);_iteratorNormalCompletion8=!0)p=o.value,await j(p)}catch(t){_didIteratorError8=!0,_iteratorError8=t}finally{try{!_iteratorNormalCompletion8&&n.return&&n.return()}finally{if(_didIteratorError8)throw _iteratorError8}}}break;default:throw new Error('\u041D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u0430\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u0430: "'+b.name+'"');}},notify=function(b,c){var d=2<arguments.length&&void 0!==arguments[2]?arguments[2]:'';c?console.error(b,c,d):console.log(b,c,d),showNotification(b,c,'[BOT]'+d)},loadBotCfg=function(b){return GM_getValue(b)||{actionsCfg:'',started:!1,currentActionIndex:0,currentActionProgress:0}},setBotCfg=function(b,c){GM_setValue(b,Object.assign({actionsCfg:'',started:!1,currentActionIndex:0,currentActionProgress:0},c))},updateBotCfg=function(b,c){setBotCfg(b,Object.assign(loadBotCfg(b),c))};console.log('SCRIPT LOADED');var dungeCfg=null,actions=['\u043D\u0430\u043B\u0435\u0432\u043E','\u043D\u0430\u043F\u0440\u0430\u0432\u043E','\u0432\u0432\u0435\u0440\u0445','\u0432\u043D\u0438\u0437','\u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C'];unsafeWindow.__oldShowItems=unsafeWindow.showItems,unsafeWindow.showItems=function(b){unsafeWindow.__oldShowItems.call(unsafeWindow,b);var _iteratorNormalCompletion=!0,_didIteratorError=!1,_iteratorError=void 0;try{for(var d,e,c=b[Symbol.iterator]();!(_iteratorNormalCompletion=(d=c.next()).done);_iteratorNormalCompletion=!0)e=d.value,unsafeWindow.send_ajax(e.type,e.num,e.entry)}catch(f){_didIteratorError=!0,_iteratorError=f}finally{try{!_iteratorNormalCompletion&&c.return&&c.return()}finally{if(_didIteratorError)throw _iteratorError}}console.log(b)},GM_addStyle('\n.modal {\n    position: fixed;\n    z-index: 999;\n    left: 0;\n    top: 0;\n    width: 100%;\n    height: 100%;\n    overflow: auto;\n    background-color: rgb(0,0,0);\n    background-color: rgba(0,0,0,0.4);\n}\n\n.modal-content {\n    background-color: #fefefe;\n    margin: 15% auto;\n    padding: 20px;\n    border: 1px solid #888;\n    width: 300px;\n}\n\n.close {\n    color: #aaa;\n    float: right;\n    font-size: 15px;\n    font-weight: bold;\n}\n\n.close:hover,\n.close:focus {\n    color: black;\n    text-decoration: none;\n    cursor: pointer;\n} \n\n.action-editor {\n    padding: 10px;\n    border: 1px solid black;\n}\n\n.action-editor > textarea {\n    width: 100%;\n    height: 200px;\n    border: none;\n    resize: none;\n    padding: 0;\n}\n\n.way-viewer {\n    height: 200px;\n    border: 1px solid black;\n    overflow: auto;\n    padding: 10px;\n}\n\n.ways-info {\n    border-bottom: 1px solid black;\n}\n\n.xbbutton {\nwidnth: 120px !important;\n}\n');$('body').append('\n<div id="bot-panel" class="modal" v-show="visible">\n\n  <div class="modal-content">\n    <span class="close" @click="visible = false">&times;</span>\n    <div id="botSettingsInfo"></div>\n   \n<div v-if="botStarted">\n\u0411\u043E\u0442 \u0437\u0430\u043F\u0443\u0449\u0435\u043D!\n<button class="xbbutton" @click="stopBot()">Stop</button>\n</div>\n<div v-else>\n<div class="action-editor">\n                    <textarea\n                        autocomplete="off"\n                        autocorrect="off"\n                        autocapitalize="off"\n                        spellcheck="false"\n                        v-model="codeActions"\n                    ></textarea>\n</div>\n\n<div class="way-viewer">\n                    <div class="ways-info">\n                        \u041A\u043E\u043B-\u0432\u043E \u043A\u043E\u043C\u0430\u043D\u0434: {{ actions.length }}\n                    </div>\n                    <pre>{{ actions }}</pre>\n</div>\n<button class="xbbutton" @click="startBot(true)">Start</button>\n</div>\n\n  </div>\n\n</div>\n');var app=new Vue({el:'#bot-panel',data:function data(){return{botStarted:!1,dungeId:'',__codeActions:'',visible:!1}},computed:{actions:function(){return parseActions(this.codeActions)},codeActions:{set:function set(b){this.$data.__codeActions=b},get:function get(){return this.$data.__codeActions}}},methods:{setDungeId:function setDungeId(b){this.dungeId=b;var c=loadBotCfg(this.dungeId);this.codeActions=c.actionsCfg,c.started&&this.startBot()},startBot:function startBot(clicked){var _this=this;if(!this.actions.length)return void notify('\u0421\u043F\u0438\u0441\u043E\u043A \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0439 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0431\u044B\u0442\u044C \u043F\u0443\u0441\u0442\u044B\u043C',!0);if(!this.botStarted){this.botStarted=!0,clicked?(setBotCfg(this.dungeId,{actionsCfg:this.codeActions,started:!0}),notify('\u0411\u043E\u0442 \u0437\u0430\u043F\u0443\u0449\u0435\u043D!')):updateBotCfg(this.dungeId,{actionsCfg:this.codeActions});var aclionList=this.actions,self=this;(async function(){for(;self.botStarted;){var b=loadBotCfg(self.dungeId),c=aclionList[b.currentActionIndex];if(!c)return 1;var d=b.currentActionProgress,e=parseInt(c.params[0])||1;d<e?(await excBotCommand(c),updateBotCfg(self.dungeId,{currentActionProgress:d+1})):updateBotCfg(self.dungeId,{currentActionIndex:b.currentActionIndex+1,currentActionProgress:0})}})().then(function(b){1==b&&_this.stopBot(),notify('\u0411\u043E\u0442 \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u043B \u0440\u0430\u0431\u043E\u0442\u0443')}).catch(function(err){'xmlDataJs'==err.name?(console.warn('\u0412 \u043E\u0442\u0432\u0435\u0442\u0435 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u0442\u0441\u044F JS. \u0412\u044B\u043F\u043E\u043B\u043D\u044F\u0435\u043C \u0435\u0433\u043E',err),eval(err.js)):'BattleBegin'==err.name?(notify('\u0410\u0442\u0430\u043A\u0443\u0435\u043C \u043C\u043E\u043D\u0441\u0442\u0440\u0430!'),console.warn('\u041D\u0430\u0447\u0438\u043D\u0430\u0435\u043C \u0431\u043E\u0439',err),cmd('attack',{objectId:err.mob.id}).then(function(res){console.log('res',res),res.javascript&&eval(res.javascript.value),res.world&&res.world.javascript&&eval(res.world.javascript.value)}),setTimeout(function(){unsafeWindow.location.reload()},1e4)):(console.error('\u0412 \u0440\u0430\u0431\u043E\u0442\u0435 \u0431\u043E\u0442\u0430 \u043F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u0430 \u043E\u0448\u0438\u0431\u043A\u0430',err),notify('\u0412 \u0440\u0430\u0431\u043E\u0442\u0435 \u0431\u043E\u0442\u0430 \u043F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u0430 \u043E\u0448\u0438\u0431\u043A\u0430 <br/>['+err.message+']',!0),_this.stopBot())})}},stopBot:function stopBot(){this.botStarted&&(this.botStarted=!1,updateBotCfg(this.dungeId,{started:!1}))}}}),botBtn=$('<input/>',{'class':'xbbutton',click:function click(){app.visible=!0},value:'Bot',type:'button'});$('.right-col .buttons').append(botBtn),async function(){var dungeCfg=await getDungeCfg();if(!dungeCfg.datastorage&dungeCfg.javascript)eval(dungeCfg.javascript.value);else if(!dungeCfg.datastorage)throw new Error('\u041D\u0435 \u0432\u0430\u043B\u0438\u0434\u043D\u044B\u0439 \u043A\u043E\u043D\u0444\u0438\u0433 \u043F\u043E\u0434\u0437\u0435\u043C\u0435\u043B\u044C\u044F');var dungeId=dungeCfg.datastorage.mainwinlib.path,xmlData=await cmd('updateXML');app.setDungeId.call(app,dungeId),console.log('dungeCfg',dungeCfg),console.log('xmlData',xmlData)}().catch(console.error)}})();
+(function () {
+    'use strict';
+    var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+    var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+    window.title = "SCRIPT LOADED";
+    if (document.getElementById('flashdungeon')) {
+        var cmd = async function cmd(cmdName, query) {
+            var url = "http://damask.blutbad.ru/dungeon_xml.php" + querystring(Object.assign({ cmd: cmdName, nd: getCookie("nd") }, query)) + "&" + Math.random();
+            var res = await fetch(url);
+            var respText = await res.text();
+            if (parser.validate(respText)) {
+                return parser.parse(respText, {
+                    ignoreAttributes: false,
+                    parseAttributeValue: true,
+                    attributeNamePrefix: ""
+                });
+            } else {
+                console.error("invalid xml data");
+                throw new Error("invalid xml data");
+            }
+        };
+
+        var getCookie = function getCookie(name) {
+            var matches = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"));
+            return matches ? decodeURIComponent(matches[1]) : undefined;
+        };
+
+        var findPointObject = function findPointObject(x, y, world) {
+            var _iteratorNormalCompletion2 = true;
+            var _didIteratorError2 = false;
+            var _iteratorError2 = undefined;
+
+            try {
+                for (var _iterator2 = Object.values(world.objects)[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                    var objectsList = _step2.value;
+
+                    var objects = [];
+                    if (Array.isArray(objectsList.object)) {
+                        objects = objectsList.object;
+                    } else if (_typeof(objectsList.object) == "object") {
+                        objects = [objectsList.object];
+                    }
+
+                    var _iteratorNormalCompletion3 = true;
+                    var _didIteratorError3 = false;
+                    var _iteratorError3 = undefined;
+
+                    try {
+                        for (var _iterator3 = objects[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+                            var object = _step3.value;
+
+                            if (object.position.x == x && object.position.y == y) {
+                                return {
+                                    x: object.position.x,
+                                    y: object.position.y,
+                                    type: object.type.value,
+                                    id: object.id.value
+                                };
+                            }
+                        }
+                    } catch (err) {
+                        _didIteratorError3 = true;
+                        _iteratorError3 = err;
+                    } finally {
+                        try {
+                            if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                                _iterator3.return();
+                            }
+                        } finally {
+                            if (_didIteratorError3) {
+                                throw _iteratorError3;
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                _didIteratorError2 = true;
+                _iteratorError2 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                        _iterator2.return();
+                    }
+                } finally {
+                    if (_didIteratorError2) {
+                        throw _iteratorError2;
+                    }
+                }
+            }
+
+            return null;
+        };
+
+        var getWays = function getWays(world) {
+            var ways = {};
+            var _iteratorNormalCompletion4 = true;
+            var _didIteratorError4 = false;
+            var _iteratorError4 = undefined;
+
+            try {
+                for (var _iterator4 = world.ways.position[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+                    var position = _step4.value;
+
+                    var type = findPointObject(position.x, position.y, world);
+                    ways[position.x + '_' + position.y] = type || position;
+                }
+            } catch (err) {
+                _didIteratorError4 = true;
+                _iteratorError4 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion4 && _iterator4.return) {
+                        _iterator4.return();
+                    }
+                } finally {
+                    if (_didIteratorError4) {
+                        throw _iteratorError4;
+                    }
+                }
+            }
+
+            return ways;
+        };
+
+        var rnd = function rnd() {
+            var min = void 0,
+                max = void 0;
+            if (arguments.length == 2) {
+                min = arguments.length <= 0 ? undefined : arguments[0];
+                max = arguments.length <= 1 ? undefined : arguments[1];
+            } else {
+                min = 0;
+                max = arguments.length <= 0 ? undefined : arguments[0];
+            }
+            return Math.floor(Math.random() * max + min);
+        };
+
+        var randomValue = function randomValue() {
+            for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+                args[_key] = arguments[_key];
+            }
+
+            return args[rnd(args.length)];
+        };
+
+        var getDungeCfg = async function getDungeCfg() {
+            if (dungeCfg) {
+                return dungeCfg;
+            } else {
+                var cfg = await cmd("getcfg");
+                cfg.typedescription = {};
+                // парсим описание типов объектов
+                var _iteratorNormalCompletion5 = true;
+                var _didIteratorError5 = false;
+                var _iteratorError5 = undefined;
+
+                try {
+                    var _loop = function _loop() {
+                        var type = _step5.value;
+
+                        if (type.action) {
+                            var actiondescription = cfg.datastorage.actiondescription.action.find(function (action) {
+                                return action.id == type.action.id;
+                            });
+                            type.action.cmd = actiondescription.cmd;
+                        }
+                        cfg.typedescription[type.id] = type;
+                    };
+
+                    for (var _iterator5 = cfg.datastorage.typedescription.type[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+                        _loop();
+                    }
+                } catch (err) {
+                    _didIteratorError5 = true;
+                    _iteratorError5 = err;
+                } finally {
+                    try {
+                        if (!_iteratorNormalCompletion5 && _iterator5.return) {
+                            _iterator5.return();
+                        }
+                    } finally {
+                        if (_didIteratorError5) {
+                            throw _iteratorError5;
+                        }
+                    }
+                }
+
+                return dungeCfg = cfg;
+            }
+        };
+
+        var querystring = function querystring(obj) {
+            return Object.keys(obj).reduce(function (str, key, i) {
+                var delimiter, val;
+                delimiter = i === 0 ? '?' : '&';
+                key = encodeURIComponent(key);
+                val = encodeURIComponent(obj[key]);
+                return [str, delimiter, key, '=', val].join('');
+            }, '');
+        };
+
+        var parseActions = function parseActions(text) {
+            return text.split("\n").map(function (str) {
+                var actionData = str.split(" ").filter(function (a) {
+                    return a;
+                });
+                if (actionData.length) {
+                    var actionName = actionData[0].toLowerCase();
+                    if (actions.includes(actionName)) {
+                        return {
+                            name: actionName,
+                            params: actionData.splice(1)
+                        };
+                    }
+                }
+            }).filter(function (a) {
+                return a;
+            });
+        };
+
+        var validateXmlData = function validateXmlData(xmlData) {
+            if (!xmlData.world && xmlData.javascript) {
+                throw {
+                    message: "В ответе содержится JS код",
+                    name: "xmlDataJs",
+                    js: xmlData.javascript.value
+                };
+            } else if (!xmlData.world) {
+                console.error('\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443 "' + command.name + '".', xmlData);
+                throw new Error('\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443 "' + command.name + '".');
+            }
+
+            return xmlData;
+        };
+
+        var rotateTo = async function rotateTo(dir) {
+            var rotateDir = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "L";
+
+            while (true) {
+                var xmlData = validateXmlData((await cmd("turnXML", {
+                    direction: rotateDir
+                })));
+                if (xmlData.world.hero.direction.value == dir) {
+                    return xmlData;
+                }
+            }
+        };
+
+        var getWay = function getWay(ways, x, y) {
+            return ways[x + "_" + y];
+        };
+
+        var pathIsClear = function pathIsClear(ways, x, y) {
+            var wayInfo = getWay(ways, x, y);
+            return wayInfo && ["cell", "obj_grating_open"].includes(wayInfo.type);
+        };
+
+        var lookAround = function lookAround(ways, heroPosition) {
+            var objects = {};
+            var wayInfo = null;
+            var mods = [[-1, 0, "w"], [1, 0, "e"], [0, -1, "n"], [0, 1, "s"]];
+
+            var _iteratorNormalCompletion6 = true;
+            var _didIteratorError6 = false;
+            var _iteratorError6 = undefined;
+
+            try {
+                for (var _iterator6 = mods[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+                    var m = _step6.value;
+
+                    var _wayInfo = getWay(ways, heroPosition.x + m[0], heroPosition.y + m[1]);
+                    if (_wayInfo && (_wayInfo.type.indexOf("obj_") == 0 || _wayInfo.type.indexOf("bot_") == 0)) {
+                        objects[m[2]] = _wayInfo;
+                    }
+                }
+            } catch (err) {
+                _didIteratorError6 = true;
+                _iteratorError6 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion6 && _iterator6.return) {
+                        _iterator6.return();
+                    }
+                } finally {
+                    if (_didIteratorError6) {
+                        throw _iteratorError6;
+                    }
+                }
+            }
+
+            return objects;
+        };
+
+        var excBotCommand = async function excBotCommand(command) {
+            console.log("выполняется команда:" + command.name);
+            var xmlData = validateXmlData((await cmd("updateXML")));
+            var hero = xmlData.world.hero;
+            var ways = getWays(xmlData.world);
+            var objectsAround = lookAround(ways, hero.position);
+
+            var _iteratorNormalCompletion7 = true;
+            var _didIteratorError7 = false;
+            var _iteratorError7 = undefined;
+
+            try {
+                for (var _iterator7 = Object.values(objectsAround)[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+                    var obj = _step7.value;
+
+                    // если рядом есть моб то атакуем его
+                    if (obj.type.indexOf("bot_") == 0) {
+                        throw {
+                            name: "BattleBegin",
+                            mob: obj
+                        };
+                    }
+                }
+            } catch (err) {
+                _didIteratorError7 = true;
+                _iteratorError7 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion7 && _iterator7.return) {
+                        _iterator7.return();
+                    }
+                } finally {
+                    if (_didIteratorError7) {
+                        throw _iteratorError7;
+                    }
+                }
+            }
+
+            async function toStep(rotateDir) {
+                if (!objectsAround[rotateDir]) {
+                    if (hero.direction.value != rotateDir) {
+                        console.log('\u0420\u0430\u0437\u0432\u043E\u0440\u0430\u0447\u0438\u0432\u0430\u0435\u043C\u0441\u044F ' + command.name + '..');
+                        await rotateTo(rotateDir);
+                    }
+
+                    console.log("Делаем шаг");
+                    await cmd("moveXML", {
+                        direction: "up"
+                    });
+                } else {
+                    throw new Error("Невозможно сделать шаг " + command.name);
+                }
+            }
+
+            switch (command.name) {
+                case "налево":
+                    await toStep("w");
+                    break;
+
+                case "направо":
+                    await toStep("e");
+
+                    break;
+
+                case "вверх":
+                    await toStep("n");
+                    break;
+
+                case "вниз":
+                    await toStep("s");
+                    break;
+
+                case "использовать":
+                    var _dungeCfg = await getDungeCfg();
+
+                    var use = async function use(object) {
+                        if (object) {
+                            var typeInfo = _dungeCfg.typedescription[object.type];
+                            if (typeInfo.action) {
+                                console.log("используем", object.type);
+                                await cmd(typeInfo.action.cmd, { objectId: object.id });
+                            } else {
+                                console.log(object.type, "нельзя использовать");
+                            }
+                        } else {
+                            console.warn("нельзя использовать пустой объект");
+                        }
+                    };
+
+                    if (command.params.length) {
+                        var _command$params = _slicedToArray(command.params, 1),
+                            dir = _command$params[0];
+
+                        var object = null;
+
+                        switch (dir) {
+                            case "слева":
+                                object = objectsAround["w"];
+                                break;
+
+                            case "справа":
+                                object = objectsAround["e"];
+                                break;
+
+                            case "снизу":
+                                object = objectsAround["s"];
+                                break;
+
+                            case "сверху":
+                                object = objectsAround["n"];
+                                break;
+                        }
+
+                        await use(object);
+                    } else {
+                        var _iteratorNormalCompletion8 = true;
+                        var _didIteratorError8 = false;
+                        var _iteratorError8 = undefined;
+
+                        try {
+                            for (var _iterator8 = Object.values(objectsAround)[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+                                var _object = _step8.value;
+
+                                await use(_object);
+                            }
+                        } catch (err) {
+                            _didIteratorError8 = true;
+                            _iteratorError8 = err;
+                        } finally {
+                            try {
+                                if (!_iteratorNormalCompletion8 && _iterator8.return) {
+                                    _iterator8.return();
+                                }
+                            } finally {
+                                if (_didIteratorError8) {
+                                    throw _iteratorError8;
+                                }
+                            }
+                        }
+                    }
+                    break;
+
+                default:
+                    throw new Error('\u041D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u0430\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u0430: "' + command.name + '"');
+            }
+        };
+
+        var notify = function notify(msg, err) {
+            var title = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : "";
+
+            if (err) console.error(msg, err, title);else console.log(msg, err, title);
+            showNotification(msg, err, "[BOT]" + title);
+        };
+
+        var loadBotCfg = function loadBotCfg(dungeId) {
+            return GM_getValue(dungeId) || {
+                actionsCfg: "",
+                started: false,
+                currentActionIndex: 0,
+                currentActionProgress: 0
+            };
+        };
+
+        var parseTypeDescription = function parseTypeDescription(dangeCfg) {
+            var res = {};
+            var _iteratorNormalCompletion9 = true;
+            var _didIteratorError9 = false;
+            var _iteratorError9 = undefined;
+
+            try {
+                var _loop2 = function _loop2() {
+                    var type = _step9.value;
+
+                    if (type.action) {
+                        var actiondescription = dangeCfg.datastorage.actiondescription.action.find(function (action) {
+                            return action.id == type.action.id;
+                        });
+                        type.action.cmd = actiondescription.cmd;
+                    }
+                    res[type.id] = type;
+                };
+
+                for (var _iterator9 = dangeCfg.datastorage.typedescription.type[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+                    _loop2();
+                }
+            } catch (err) {
+                _didIteratorError9 = true;
+                _iteratorError9 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion9 && _iterator9.return) {
+                        _iterator9.return();
+                    }
+                } finally {
+                    if (_didIteratorError9) {
+                        throw _iteratorError9;
+                    }
+                }
+            }
+        };
+
+        var setBotCfg = function setBotCfg(dungeId, cfg) {
+            GM_setValue(dungeId, Object.assign({
+                actionsCfg: "",
+                started: false,
+                currentActionIndex: 0,
+                currentActionProgress: 0
+            }, cfg));
+        };
+
+        var updateBotCfg = function updateBotCfg(dungeId, cfg) {
+            setBotCfg(dungeId, Object.assign(loadBotCfg(dungeId), cfg));
+        };
+
+        console.log("SCRIPT LOADED");
+
+        var dungeCfg = null;
+        var actions = ["налево", "направо", "вверх", "вниз", "использовать"];
+
+        // автоматическое поднятие предметов
+        unsafeWindow.__oldShowItems = unsafeWindow.showItems;
+        unsafeWindow.showItems = function (items) {
+            unsafeWindow.__oldShowItems.call(unsafeWindow, items);
+            var _iteratorNormalCompletion = true;
+            var _didIteratorError = false;
+            var _iteratorError = undefined;
+
+            try {
+                for (var _iterator = items[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                    var item = _step.value;
+
+                    unsafeWindow.send_ajax(item.type, item.num, item.entry);
+                }
+            } catch (err) {
+                _didIteratorError = true;
+                _iteratorError = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion && _iterator.return) {
+                        _iterator.return();
+                    }
+                } finally {
+                    if (_didIteratorError) {
+                        throw _iteratorError;
+                    }
+                }
+            }
+
+            console.log(items);
+        };
+
+        GM_addStyle('\n.modal {\n    position: fixed;\n    z-index: 999;\n    left: 0;\n    top: 0;\n    width: 100%;\n    height: 100%;\n    overflow: auto;\n    background-color: rgb(0,0,0);\n    background-color: rgba(0,0,0,0.4);\n}\n\n.modal-content {\n    background-color: #fefefe;\n    margin: 15% auto;\n    padding: 20px;\n    border: 1px solid #888;\n    width: 300px;\n}\n\n.close {\n    color: #aaa;\n    float: right;\n    font-size: 15px;\n    font-weight: bold;\n}\n\n.close:hover,\n.close:focus {\n    color: black;\n    text-decoration: none;\n    cursor: pointer;\n} \n\n.action-editor {\n    padding: 10px;\n    border: 1px solid black;\n}\n\n.action-editor > textarea {\n    width: 100%;\n    height: 200px;\n    border: none;\n    resize: none;\n    padding: 0;\n}\n\n.way-viewer {\n    height: 200px;\n    border: 1px solid black;\n    overflow: auto;\n    padding: 10px;\n}\n\n.ways-info {\n    border-bottom: 1px solid black;\n}\n\n.xbbutton {\nwidnth: 120px !important;\n}\n');
+
+        var botVueTemplate = '\n<div id="bot-panel" class="modal" v-show="visible">\n\n  <div class="modal-content">\n    <span class="close" @click="visible = false">&times;</span>\n    <div id="botSettingsInfo"></div>\n   \n<div v-if="botStarted">\n\u0411\u043E\u0442 \u0437\u0430\u043F\u0443\u0449\u0435\u043D!\n<button class="xbbutton" @click="stopBot()">Stop</button>\n</div>\n<div v-else>\n<div class="action-editor">\n                    <textarea\n                        autocomplete="off"\n                        autocorrect="off"\n                        autocapitalize="off"\n                        spellcheck="false"\n                        v-model="codeActions"\n                    ></textarea>\n</div>\n\n<div class="way-viewer">\n                    <div class="ways-info">\n                        \u041A\u043E\u043B-\u0432\u043E \u043A\u043E\u043C\u0430\u043D\u0434: {{ actions.length }}\n                    </div>\n                    <pre>{{ actions }}</pre>\n</div>\n<button class="xbbutton" @click="startBot(true)">Start</button>\n</div>\n\n  </div>\n\n</div>\n';
+        $('body').append(botVueTemplate);
+
+        var app = new Vue({
+            el: "#bot-panel",
+            data: function data() {
+                return {
+                    botStarted: false,
+                    dungeId: "",
+                    __codeActions: "",
+                    visible: false
+                };
+            },
+
+            computed: {
+                actions: function actions() {
+                    return parseActions(this.codeActions);
+                },
+                codeActions: {
+                    set: function set(value) {
+                        this.$data.__codeActions = value;
+                    },
+                    get: function get() {
+                        return this.$data.__codeActions;
+                    }
+                }
+            },
+            methods: {
+                setDungeId: function setDungeId(id) {
+                    this.dungeId = id;
+                    var cfg = loadBotCfg(this.dungeId);
+                    this.codeActions = cfg.actionsCfg;
+                    if (cfg.started) {
+                        this.startBot();
+                    }
+                },
+                startBot: function startBot(clicked) {
+                    var _this = this;
+
+                    if (!this.actions.length) {
+                        notify("Список действий не может быть пустым", true);
+                        return;
+                    }
+                    if (!this.botStarted) {
+                        this.botStarted = true;
+
+                        if (clicked) {
+                            setBotCfg(this.dungeId, {
+                                actionsCfg: this.codeActions,
+                                started: true
+                            });
+                            notify("Бот запущен!");
+                        } else {
+                            updateBotCfg(this.dungeId, {
+                                actionsCfg: this.codeActions
+                            });
+                        }
+
+                        var aclionList = this.actions;
+                        var self = this;
+
+                        (async function () {
+                            while (self.botStarted) {
+                                var botCfg = loadBotCfg(self.dungeId);
+                                var currentAction = aclionList[botCfg.currentActionIndex];
+                                if (!currentAction) {
+                                    return 1;
+                                } else {
+                                    var progress = botCfg.currentActionProgress;
+                                    var maxProgress = parseInt(currentAction.params[0]) || 1;
+                                    if (progress < maxProgress) {
+                                        await excBotCommand(currentAction);
+                                        updateBotCfg(self.dungeId, { currentActionProgress: progress + 1 });
+                                    } else {
+                                        updateBotCfg(self.dungeId, { currentActionIndex: botCfg.currentActionIndex + 1, currentActionProgress: 0 });
+                                    }
+                                }
+                            }
+                        })().then(function (status) {
+                            if (status == 1) {
+                                _this.stopBot();
+                            }
+                            notify('\u0411\u043E\u0442 \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u043B \u0440\u0430\u0431\u043E\u0442\u0443');
+                        }).catch(function (err) {
+                            if (err.name == "xmlDataJs") {
+                                console.warn("В ответе содержится JS. Выполняем его", err);
+                                eval(err.js);
+                            } else if (err.name == "BattleBegin") {
+                                notify("Атакуем монстра!");
+                                console.warn("Начинаем бой", err);
+                                cmd("attack", { objectId: err.mob.id }).then(function (res) {
+                                    console.log("res", res);
+                                    if (res.javascript) {
+                                        eval(res.javascript.value);
+                                    }
+
+                                    if (res.world && res.world.javascript) {
+                                        eval(res.world.javascript.value);
+                                    }
+                                });
+                                setTimeout(function () {
+                                    unsafeWindow.location.reload();
+                                }, 10000);
+                            } else {
+                                console.error("В работе бота произошла ошибка", err);
+                                notify('\u0412 \u0440\u0430\u0431\u043E\u0442\u0435 \u0431\u043E\u0442\u0430 \u043F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u0430 \u043E\u0448\u0438\u0431\u043A\u0430 <br/>[' + err.message + ']', true);
+                                _this.stopBot();
+                            }
+                        });
+                    }
+                },
+                stopBot: function stopBot() {
+                    if (this.botStarted) {
+                        this.botStarted = false;
+                        updateBotCfg(this.dungeId, {
+                            started: false
+                        });
+                    }
+                }
+            }
+        });
+
+        var botBtn = $("<input/>", {
+            "class": "xbbutton",
+            click: function click() {
+                app.visible = true;
+            },
+            value: "Bot",
+            type: "button"
+        });
+
+        $('.right-col .buttons').append(botBtn);
+
+        (async function () {
+            var dungeCfg = await getDungeCfg();
+            if (!dungeCfg.datastorage & dungeCfg.javascript) {
+                eval(dungeCfg.javascript.value);
+            } else if (!dungeCfg.datastorage) {
+                throw new Error("Не валидный конфиг подземелья");
+            }
+            var dungeId = dungeCfg.datastorage.mainwinlib.path;
+            var xmlData = await cmd("updateXML");
+            app.setDungeId.call(app, dungeId);
+            console.log('dungeCfg', dungeCfg);
+            console.log('xmlData', xmlData);
+        })().catch(console.error);
+    }
+})();
