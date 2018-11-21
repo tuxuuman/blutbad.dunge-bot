@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.0.2
+// @version      1.1.0
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -31,8 +31,8 @@
             unsafeWindow.__oldShowItems.call(unsafeWindow, items);
             for(let item of items) {
                 unsafeWindow.send_ajax(item.type, item.num, item.entry);
+                notify(`Подобран предмет: ${item.name}`);
             }
-            console.log(items)
         }
 
         async function cmd(cmdName, query) {
@@ -40,11 +40,50 @@
             let res = await fetch(url);
             let respText = await res.text();
             if (parser.validate(respText)) {
-                return parser.parse(respText, {
+                let xmlData = parser.parse(respText, {
                     ignoreAttributes : false,
                     parseAttributeValue: true,
                     attributeNamePrefix: ""
                 });
+
+                if(xmlData.javascript) {
+                    if (xmlData.javascript.value.includes("toBattle")) {
+                        unsafeWindow.location.href = '/fbattle.php?' + Math.random()
+                        throw {
+                            message: "Вы находитесь в бою",
+                            name: "jsToBattle",
+                            js: xmlData.javascript.value
+                        };
+                    } else {
+                        throw {
+                            message: "Сервер прислал JS код",
+                            name: "xmlDataJs",
+                            js: xmlData.javascript.value
+                        };
+                    }
+                } else {
+                    if (cmdName != "getcfg") {
+                        if(!xmlData.world) {
+                            console.error(`Не валидный ответ сервера "${cmdName}".`, xmlData);
+                            throw new Error(`Не валидный ответ сервера "${cmdName}".`);
+                        } else {
+                            if (xmlData.world.javascript) {
+                                if (xmlData.world.javascript.value.includes("toBattle")) {
+                                    unsafeWindow.location.href = '/fbattle.php?' + Math.random();
+                                    throw {
+                                        message: "Вы находитесь в бою",
+                                        name: "jsToBattle",
+                                        js: xmlData.world.javascript.value
+                                    };
+                                } else {
+                                    console.log("Сервер прислал JS. Выполянем его...", xmlData.world.javascript.value)
+                                    unsafeWindow.eval(xmlData.world.javascript.value);
+                                }
+                            }
+                        }
+                    }
+                }
+                return xmlData;
             } else {
                 console.error("invalid xml data");
                 throw new Error("invalid xml data");
@@ -152,8 +191,9 @@
             })
                 .filter(a => a);
         }
-        
-        GM_addStyle(`
+
+        //#region style and template
+GM_addStyle(`
 .modal {
     position: fixed;
     z-index: 999;
@@ -252,28 +292,15 @@ const botVueTemplate = `
 
 </div>
 `;
+//#endregion
+
         $('body').append(botVueTemplate);
-        
-        function validateXmlData(xmlData) {
-            if (!xmlData.world && xmlData.javascript) {
-                throw {
-                    message: "В ответе содержится JS код",
-                    name: "xmlDataJs",
-                    js: xmlData.javascript.value
-                };
-            } else if(!xmlData.world) {
-                console.error(`Не удалось выполнить команду "${command.name}".`, xmlData);
-                throw new Error(`Не удалось выполнить команду "${command.name}".`);
-            }
-            
-            return xmlData;
-        }
         
         async function rotateTo(dir, rotateDir = "L") {
             while (true) {
-                let xmlData = validateXmlData(await cmd("turnXML", {
+                let xmlData = await cmd("turnXML", {
                     direction: rotateDir
-                }));
+                });
                 if( xmlData.world.hero.direction.value == dir) {
                     return xmlData;
                 }
@@ -282,11 +309,6 @@ const botVueTemplate = `
         
         function getWay(ways, x, y) {
             return ways[x + "_" + y];
-        }
-        
-        function pathIsClear(ways, x, y) {
-            let wayInfo = getWay(ways, x, y);
-            return wayInfo && ["cell", "obj_grating_open"].includes(wayInfo.type);
         }
         
         function lookAround(ways, heroPosition) {
@@ -310,7 +332,7 @@ const botVueTemplate = `
         
         async function excBotCommand(command) {
             console.log("выполняется команда:"+command.name);
-            let xmlData = validateXmlData(await cmd("updateXML"));
+            let xmlData = await cmd("updateXML");
             let hero = xmlData.world.hero;
             let ways = getWays(xmlData.world);
             let objectsAround = lookAround(ways, hero.position);
@@ -326,18 +348,18 @@ const botVueTemplate = `
             }
             
             async function toStep(rotateDir) {
-                if (!objectsAround[rotateDir]) {
-                    if (hero.direction.value != rotateDir) {
-                        console.log(`Разворачиваемся ${command.name}..`);
-                        await rotateTo(rotateDir);
-                    }
+                if (hero.direction.value != rotateDir) {
+                    console.log(`Разворачиваемся ${command.name}..`);
+                    await rotateTo(rotateDir);
+                }
 
-                    console.log("Делаем шаг");
-                    await cmd("moveXML", {
-                        direction: "up"
-                    });
-                } else {
-                    throw new Error("Невозможно сделать шаг " + command.name);
+                console.log("Делаем шаг");
+                await cmd("moveXML", {
+                    direction: "up"
+                });
+
+                if (objectsAround[rotateDir]) {
+                    notify("Невозможно сделать шаг. Мешает стена или объект.")
                 }
             }
             
@@ -490,23 +512,19 @@ const botVueTemplate = `
                         }).catch(err => {
                             if (err.name == "xmlDataJs") {
                                 console.warn("В ответе содержится JS. Выполняем его", err);
-                                eval(err.js);
+                                unsafeWindow.eval(err.js);
                             } else if(err.name == "BattleBegin") {
                                 notify("Атакуем монстра!");
                                 console.warn("Начинаем бой", err);
-                                cmd("attack", { objectId: err.mob.id }).then(res => {
-                                    console.log("res", res);
-                                    if (res.javascript) {
-                                        eval(res.javascript.value);
-                                    }
-                                    
-                                    if (res.world && res.world.javascript) {
-                                        eval(res.world.javascript.value);
-                                    }
-                                });
-                                setTimeout(()=>{
-                                    unsafeWindow.location.reload();
-                                }, 10000);
+                                cmd("attack", { objectId: err.mob.id })
+                                    .then(res => {
+                                    console.log("не удалось начать бой", res);
+                                    setTimeout(()=>{
+                                        unsafeWindow.location.reload();
+                                    }, 10000);
+                                }).catch(console.error)
+                            } else if(err.name == "jsToBattle") {
+                                console.error("Начинаем бой", err);
                             } else {
                                 console.error("В работе бота произошла ошибка", err);
                                 notify(`В работе бота произошла ошибка <br/>[${err.message}]`, true);
@@ -579,11 +597,6 @@ const botVueTemplate = `
         
         (async function() {
             const dungeCfg = await getDungeCfg();
-            if (!dungeCfg.datastorage & dungeCfg.javascript) {
-                eval(dungeCfg.javascript.value);
-            } else if(!dungeCfg.datastorage) {
-                throw new Error("Не валидный конфиг подземелья");
-            }
             const dungeId = dungeCfg.datastorage.mainwinlib.path;
             const xmlData = await cmd("updateXML");
             app.setDungeId.call(app, dungeId);
