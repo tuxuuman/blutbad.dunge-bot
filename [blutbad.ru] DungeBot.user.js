@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.1.0
+// @version      1.2.0
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -24,7 +24,12 @@
         let dungeCfg = null;
         const actions = ["налево", "направо", "вверх", "вниз", "использовать"];
         
-        
+        function alert(text) {
+            console.log("ALERT", text);
+        }
+
+        unsafeWindow.alert = alert;
+
         // автоматическое поднятие предметов
         unsafeWindow.__oldShowItems = unsafeWindow.showItems;
         unsafeWindow.showItems = function(items) {
