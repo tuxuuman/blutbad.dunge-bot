@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.2.0
+// @version      1.2.1
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -14,16 +14,16 @@
 // @require      https://cdn.jsdelivr.net/npm/vue/dist/vue.js
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
     window.title = "SCRIPT LOADED";
     if (document.getElementById('flashdungeon')) {
-        
+
         console.log("SCRIPT LOADED");
-        
+
         let dungeCfg = null;
         const actions = ["налево", "направо", "вверх", "вниз", "использовать"];
-        
+
         function alert(text) {
             console.log("ALERT", text);
         }
@@ -32,9 +32,9 @@
 
         // автоматическое поднятие предметов
         unsafeWindow.__oldShowItems = unsafeWindow.showItems;
-        unsafeWindow.showItems = function(items) {
+        unsafeWindow.showItems = function (items) {
             unsafeWindow.__oldShowItems.call(unsafeWindow, items);
-            for(let item of items) {
+            for (let item of items) {
                 unsafeWindow.send_ajax(item.type, item.num, item.entry);
                 notify(`Подобран предмет: ${item.name}`);
             }
@@ -46,12 +46,12 @@
             let respText = await res.text();
             if (parser.validate(respText)) {
                 let xmlData = parser.parse(respText, {
-                    ignoreAttributes : false,
+                    ignoreAttributes: false,
                     parseAttributeValue: true,
                     attributeNamePrefix: ""
                 });
 
-                if(xmlData.javascript) {
+                if (xmlData.javascript) {
                     if (xmlData.javascript.value.includes("toBattle")) {
                         unsafeWindow.location.href = '/fbattle.php?' + Math.random()
                         throw {
@@ -68,7 +68,7 @@
                     }
                 } else {
                     if (cmdName != "getcfg") {
-                        if(!xmlData.world) {
+                        if (!xmlData.world) {
                             console.error(`Не валидный ответ сервера "${cmdName}".`, xmlData);
                             throw new Error(`Не валидный ответ сервера "${cmdName}".`);
                         } else {
@@ -93,20 +93,20 @@
                 console.error("invalid xml data");
                 throw new Error("invalid xml data");
             }
-        } 
+        }
         function getCookie(name) {
             var matches = document.cookie.match(new RegExp(
                 "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
             ));
             return matches ? decodeURIComponent(matches[1]) : undefined;
         }
-        
+
         function findPointObject(x, y, world) {
-            for(let objectsList of Object.values(world.objects)) {
+            for (let objectsList of Object.values(world.objects)) {
                 let objects = [];
                 if (Array.isArray(objectsList.object)) {
                     objects = objectsList.object;
-                } else if (typeof(objectsList.object) == "object") {
+                } else if (typeof (objectsList.object) == "object") {
                     objects = [objectsList.object];
                 }
 
@@ -121,13 +121,13 @@
                     }
                 }
             }
-            
+
             return null;
         }
-        
+
         function getWays(world) {
             const ways = {};
-            for(let position of world.ways.position) {
+            for (let position of world.ways.position) {
                 let type = findPointObject(position.x, position.y, world);
                 ways[`${position.x}_${position.y}`] = type || position;
             }
@@ -145,31 +145,31 @@
             }
             return Math.floor(Math.random() * max + min);
         }
-        
+
         function randomValue(...args) {
             return args[rnd(args.length)];
         }
-          
+
         async function getDungeCfg() {
             if (dungeCfg) {
-                 return dungeCfg;
+                return dungeCfg;
             } else {
                 let cfg = await cmd("getcfg");
                 cfg.typedescription = {};
                 // парсим описание типов объектов
-                for(let type of cfg.datastorage.typedescription.type) {
+                for (let type of cfg.datastorage.typedescription.type) {
                     if (type.action) {
                         let actiondescription = cfg.datastorage.actiondescription.action.find((action => action.id == type.action.id));
                         type.action.cmd = actiondescription.cmd;
                     }
                     cfg.typedescription[type.id] = type;
                 }
- 
+
                 return dungeCfg = cfg;
             }
         }
-        
-        function querystring (obj) {
+
+        function querystring(obj) {
             return Object.keys(obj).reduce(function (str, key, i) {
                 var delimiter, val;
                 delimiter = (i === 0) ? '?' : '&';
@@ -178,27 +178,27 @@
                 return [str, delimiter, key, '=', val].join('');
             }, '');
         }
-        
+
         function parseActions(text) {
             return text
                 .split("\n")
                 .map(str => {
-                let actionData = str.split(" ").filter(a => a);
-                if (actionData.length) {
-                    let actionName = actionData[0].toLowerCase();
-                    if (actions.includes(actionName)) {
-                        return {
-                            name: actionName,
-                            params: actionData.splice(1)
-                        };
+                    let actionData = str.split(" ").filter(a => a);
+                    if (actionData.length) {
+                        let actionName = actionData[0].toLowerCase();
+                        if (actions.includes(actionName)) {
+                            return {
+                                name: actionName,
+                                params: actionData.splice(1)
+                            };
+                        }
                     }
-                }
-            })
+                })
                 .filter(a => a);
         }
 
         //#region style and template
-GM_addStyle(`
+        GM_addStyle(`
 .modal {
     position: fixed;
     z-index: 999;
@@ -261,8 +261,8 @@ GM_addStyle(`
 widnth: 120px !important;
 }
 `);
-        
-const botVueTemplate = `
+
+        const botVueTemplate = `
 <div id="bot-panel" class="modal" v-show="visible">
 
   <div class="modal-content">
@@ -297,25 +297,25 @@ const botVueTemplate = `
 
 </div>
 `;
-//#endregion
+        //#endregion
 
         $('body').append(botVueTemplate);
-        
+
         async function rotateTo(dir, rotateDir = "L") {
             while (true) {
                 let xmlData = await cmd("turnXML", {
                     direction: rotateDir
                 });
-                if( xmlData.world.hero.direction.value == dir) {
+                if (xmlData.world.hero.direction.value == dir) {
                     return xmlData;
                 }
             }
         }
-        
+
         function getWay(ways, x, y) {
             return ways[x + "_" + y];
         }
-        
+
         function lookAround(ways, heroPosition) {
             let objects = {}
             let mods = [
@@ -324,25 +324,25 @@ const botVueTemplate = `
                 [0, -1, "n"],
                 [0, 1, "s"]
             ];
-            
-            for(let m of mods) {
-                let wayInfo = getWay(ways, heroPosition.x + m[0] , heroPosition.y + m[1]);
+
+            for (let m of mods) {
+                let wayInfo = getWay(ways, heroPosition.x + m[0], heroPosition.y + m[1]);
                 if (wayInfo && wayInfo.type != "obj_grating_open" && (wayInfo.type.indexOf("obj_") == 0 || wayInfo.type.indexOf("bot_") == 0)) {
                     objects[m[2]] = wayInfo;
                 }
             }
-            
+
             return objects;
         }
-        
+
         async function excBotCommand(command) {
-            console.log("выполняется команда:"+command.name);
+            console.log("выполняется команда:" + command.name);
             let xmlData = await cmd("updateXML");
             let hero = xmlData.world.hero;
             let ways = getWays(xmlData.world);
             let objectsAround = lookAround(ways, hero.position);
-            
-            for(let obj of Object.values(objectsAround)) {
+
+            for (let obj of Object.values(objectsAround)) {
                 // если рядом есть моб то атакуем его
                 if (obj.type.indexOf("bot_") == 0) {
                     throw {
@@ -351,7 +351,7 @@ const botVueTemplate = `
                     }
                 }
             }
-            
+
             async function toStep(rotateDir) {
                 if (hero.direction.value != rotateDir) {
                     console.log(`Разворачиваемся ${command.name}..`);
@@ -367,30 +367,34 @@ const botVueTemplate = `
                     notify("Невозможно сделать шаг. Мешает стена или объект.")
                 }
             }
-            
+
             switch (command.name) {
                 case "налево":
                     await toStep("w");
                     break;
-                    
-                case "направо": 
+
+                case "направо":
                     await toStep("e");
-                    
+
                     break;
-                    
-                case "вверх": 
-                    await toStep("n");     
+
+                case "вверх":
+                    await toStep("n");
                     break;
-                    
-                case "вниз": 
+
+                case "вниз":
                     await toStep("s");
                     break;
-                    
+
                 case "использовать":
                     let dungeCfg = await getDungeCfg();
-                    
+
                     async function use(object) {
                         if (object) {
+                            if (object.type == "obj_switched") {
+                                console.warn("заблокирована попытка закрыть решетку");
+                                return;
+                            }
                             let typeInfo = dungeCfg.typedescription[object.type];
                             if (typeInfo.action) {
                                 console.log("используем", object.type);
@@ -402,41 +406,40 @@ const botVueTemplate = `
                             console.warn("нельзя использовать пустой объект");
                         }
                     }
-                    
+
                     if (command.params.length) {
-                        let [dir] =  command.params;
+                        let [dir] = command.params;
                         let object = null;
-                        
+
                         switch (dir) {
                             case "слева":
                                 object = objectsAround["w"];
                                 break;
-                                
-                            case "справа": 
+
+                            case "справа":
                                 object = objectsAround["e"];
                                 break;
-                                
-                            case "снизу": 
+
+                            case "снизу":
                                 object = objectsAround["s"];
                                 break;
-                                
-                            case "сверху": 
+
+                            case "сверху":
                                 object = objectsAround["n"];
                                 break;
                         }
-                        
-                        await use(object);
+                        if (object) await use(object);
                     } else {
-                        for(let object of Object.values(objectsAround)) {
+                        for (let object of Object.values(objectsAround)) {
                             await use(object);
                         }
                     }
                     break;
-                    
+
                 default: throw new Error(`Неизвестная команда: "${command.name}"`);
             }
         }
-        
+
         var app = new Vue({
             el: "#bot-panel",
             data() {
@@ -448,7 +451,7 @@ const botVueTemplate = `
                 };
             },
             computed: {
-                actions: function() {
+                actions: function () {
                     return parseActions(this.codeActions);
                 },
                 codeActions: {
@@ -476,7 +479,7 @@ const botVueTemplate = `
                     }
                     if (!this.botStarted) {
                         this.botStarted = true;
-                        
+
                         if (clicked) {
                             setBotCfg(this.dungeId, {
                                 actionsCfg: this.codeActions,
@@ -488,11 +491,11 @@ const botVueTemplate = `
                                 actionsCfg: this.codeActions
                             });
                         }
-                        
+
                         let aclionList = this.actions;
                         const self = this;
-                        
-                        (async function(){
+
+                        (async function () {
                             while (self.botStarted) {
                                 let botCfg = loadBotCfg(self.dungeId);
                                 let currentAction = aclionList[botCfg.currentActionIndex];
@@ -511,24 +514,24 @@ const botVueTemplate = `
                             }
                         })().then((status) => {
                             if (status == 1) {
-                                 this.stopBot();
+                                this.stopBot();
                             }
                             notify(`Бот завершил работу`)
                         }).catch(err => {
                             if (err.name == "xmlDataJs") {
                                 console.warn("В ответе содержится JS. Выполняем его", err);
                                 unsafeWindow.eval(err.js);
-                            } else if(err.name == "BattleBegin") {
+                            } else if (err.name == "BattleBegin") {
                                 notify("Атакуем монстра!");
                                 console.warn("Начинаем бой", err);
                                 cmd("attack", { objectId: err.mob.id })
                                     .then(res => {
-                                    console.log("не удалось начать бой", res);
-                                    setTimeout(()=>{
-                                        unsafeWindow.location.reload();
-                                    }, 10000);
-                                }).catch(console.error)
-                            } else if(err.name == "jsToBattle") {
+                                        console.log("не удалось начать бой", res);
+                                        setTimeout(() => {
+                                            unsafeWindow.location.reload();
+                                        }, 10000);
+                                    }).catch(console.error)
+                            } else if (err.name == "jsToBattle") {
                                 console.error("Начинаем бой", err);
                             } else {
                                 console.error("В работе бота произошла ошибка", err);
@@ -548,25 +551,25 @@ const botVueTemplate = `
                 }
             }
         });
-        
-        function notify(msg, err, title="") {
+
+        function notify(msg, err, title = "") {
             if (err) console.error(msg, err, title);
             else console.log(msg, err, title);
-            showNotification(msg, err, "[BOT]"+title);
+            showNotification(msg, err, "[BOT]" + title);
         }
-        
+
         const botBtn = $("<input/>", {
             "class": "xbbutton",
-            click: function() {
+            click: function () {
                 app.visible = true;
             },
             value: "Bot",
             type: "button"
         });
 
-        
-        $('.right-col .buttons').append(botBtn);   
-        
+
+        $('.right-col .buttons').append(botBtn);
+
         function loadBotCfg(dungeId) {
             return GM_getValue(dungeId) || {
                 actionsCfg: "",
@@ -575,10 +578,10 @@ const botVueTemplate = `
                 currentActionProgress: 0
             };
         }
-            
+
         function parseTypeDescription(dangeCfg) {
             let res = {};
-            for(let type of dangeCfg.datastorage.typedescription.type) {
+            for (let type of dangeCfg.datastorage.typedescription.type) {
                 if (type.action) {
                     let actiondescription = dangeCfg.datastorage.actiondescription.action.find((action => action.id == type.action.id));
                     type.action.cmd = actiondescription.cmd;
@@ -586,29 +589,29 @@ const botVueTemplate = `
                 res[type.id] = type;
             }
         }
-        
+
         function setBotCfg(dungeId, cfg) {
             GM_setValue(dungeId, Object.assign({
                 actionsCfg: "",
                 started: false,
                 currentActionIndex: 0,
                 currentActionProgress: 0
-            },cfg));
+            }, cfg));
         }
-        
+
         function updateBotCfg(dungeId, cfg) {
             setBotCfg(dungeId, Object.assign(loadBotCfg(dungeId), cfg));
         }
-        
-        (async function() {
+
+        (async function () {
             const dungeCfg = await getDungeCfg();
             const dungeId = dungeCfg.datastorage.mainwinlib.path;
             const xmlData = await cmd("updateXML");
             app.setDungeId.call(app, dungeId);
-            console.log('dungeCfg',dungeCfg);
-            console.log('xmlData',xmlData);
+            console.log('dungeCfg', dungeCfg);
+            console.log('xmlData', xmlData);
         })().catch(console.error);
-        
-        
+
+
     }
 })();
