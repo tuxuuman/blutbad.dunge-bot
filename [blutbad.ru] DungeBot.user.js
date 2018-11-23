@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.2.1
+// @version      1.3.0
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -22,7 +22,8 @@
         console.log("SCRIPT LOADED");
 
         let dungeCfg = null;
-        const actions = ["налево", "направо", "вверх", "вниз", "использовать"];
+        const actions = ["налево", "направо", "вверх", "вниз", "использовать", "установить_паузу"];
+        let pauseDuration = 1;
 
         function alert(text) {
             console.log("ALERT", text);
@@ -312,6 +313,14 @@ widnth: 120px !important;
             }
         }
 
+        function pause(seconds) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve();
+                }, 1000 * seconds);
+            });
+        }
+
         function getWay(ways, x, y) {
             return ways[x + "_" + y];
         }
@@ -369,6 +378,15 @@ widnth: 120px !important;
             }
 
             switch (command.name) {
+                case "установить_паузу":
+                    pauseDuration = parseFloat(command.params[0]);
+
+                    if (isNaN(pauseDuration) || pauseDuration < 0) {
+                        pauseDuration = 0
+                    }
+
+                    notify(`Изменение паузе на ${pauseDuration} сек.`)
+                break;
                 case "налево":
                     await toStep("w");
                     break;
@@ -510,6 +528,7 @@ widnth: 120px !important;
                                     } else {
                                         updateBotCfg(self.dungeId, { currentActionIndex: botCfg.currentActionIndex + 1, currentActionProgress: 0 });
                                     }
+                                    await pause(pauseDuration);
                                 }
                             }
                         })().then((status) => {
