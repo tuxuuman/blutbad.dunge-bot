@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.4.1
+// @version      1.4.2
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -584,8 +584,8 @@ widnth: 120px !important;
         });
 
         function notify(msg, err, title = "") {
-            if (err) logger.error(msg, err, title);
-            else logger.log(msg, err, title);
+            if (err) logger.error(msg);
+            else logger.log(msg);
             showNotification(msg, err, "[BOT]" + title);
         }
 
