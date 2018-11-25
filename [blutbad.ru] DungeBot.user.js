@@ -94,7 +94,7 @@
                                         js: xmlData.world.javascript.value
                                     };
                                 } else {
-                                    logger.log("Сервер прислал JS. Выполянем его...", xmlData.world.javascript.value)
+                                    //logger.log("Сервер прислал JS. Выполянем его...", xmlData.world.javascript.value)
                                     unsafeWindow.eval(xmlData.world.javascript.value);
                                 }
                             }
