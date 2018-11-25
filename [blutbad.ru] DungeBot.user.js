@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.3.0
+// @version      1.4.0
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -11,7 +11,7 @@
 // @grant        unsafeWindow
 // @require      https://cdnjs.cloudflare.com/ajax/libs/fast-xml-parser/3.10.0/parser.js
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js
-// @require      https://cdn.jsdelivr.net/npm/vue/dist/vue.js
+// @require      https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.min.js
 // ==/UserScript==
 
 (function () {
@@ -19,14 +19,26 @@
     window.title = "SCRIPT LOADED";
     if (document.getElementById('flashdungeon')) {
 
-        console.log("SCRIPT LOADED");
+        const logger = {
+            log(...args) {
+                console.log(`======${(new Date).toLocaleString()}======\n`, ...args, '===============================\n\n');
+            },
+            warn(...args) {
+                console.warn(`======${(new Date).toLocaleString()}======\n`, ...args, '===============================\n\n');
+            },
+            error(...args) {
+                console.error(`======${(new Date).toLocaleString()}======\n`, ...args, '===============================\n\n');
+            }
+        }
+
+        logger.log("SCRIPT LOADED");
 
         let dungeCfg = null;
         const actions = ["налево", "направо", "вверх", "вниз", "использовать", "установить_паузу"];
         let pauseDuration = 1;
 
         function alert(text) {
-            console.log("ALERT", text);
+            logger.log("ALERT", text);
         }
 
         unsafeWindow.alert = alert;
@@ -70,7 +82,7 @@
                 } else {
                     if (cmdName != "getcfg") {
                         if (!xmlData.world) {
-                            console.error(`Не валидный ответ сервера "${cmdName}".`, xmlData);
+                            logger.error(`Не валидный ответ сервера "${cmdName}".`, xmlData);
                             throw new Error(`Не валидный ответ сервера "${cmdName}".`);
                         } else {
                             if (xmlData.world.javascript) {
@@ -82,7 +94,7 @@
                                         js: xmlData.world.javascript.value
                                     };
                                 } else {
-                                    console.log("Сервер прислал JS. Выполянем его...", xmlData.world.javascript.value)
+                                    logger.log("Сервер прислал JS. Выполянем его...", xmlData.world.javascript.value)
                                     unsafeWindow.eval(xmlData.world.javascript.value);
                                 }
                             }
@@ -91,7 +103,7 @@
                 }
                 return xmlData;
             } else {
-                console.error("invalid xml data");
+                logger.error("invalid xml data");
                 throw new Error("invalid xml data");
             }
         }
@@ -345,7 +357,7 @@ widnth: 120px !important;
         }
 
         async function excBotCommand(command) {
-            console.log("выполняется команда:" + command.name);
+            logger.log("выполняется команда:" + command.name);
             let xmlData = await cmd("updateXML");
             let hero = xmlData.world.hero;
             let ways = getWays(xmlData.world);
@@ -363,11 +375,11 @@ widnth: 120px !important;
 
             async function toStep(rotateDir) {
                 if (hero.direction.value != rotateDir) {
-                    console.log(`Разворачиваемся ${command.name}..`);
+                    logger.log(`Разворачиваемся ${command.name}..`);
                     await rotateTo(rotateDir);
                 }
 
-                console.log("Делаем шаг");
+                logger.log("Делаем шаг");
                 await cmd("moveXML", {
                     direction: "up"
                 });
@@ -410,18 +422,18 @@ widnth: 120px !important;
                     async function use(object) {
                         if (object) {
                             if (object.type == "obj_switched") {
-                                console.warn("заблокирована попытка закрыть решетку");
+                                logger.warn("заблокирована попытка закрыть решетку");
                                 return;
                             }
                             let typeInfo = dungeCfg.typedescription[object.type];
                             if (typeInfo.action) {
-                                console.log("используем", object.type);
+                                logger.log("используем", object.type);
                                 await cmd(typeInfo.action.cmd, { objectId: object.id });
                             } else {
-                                console.log(object.type, "нельзя использовать");
+                                logger.log(object.type, "нельзя использовать");
                             }
                         } else {
-                            console.warn("нельзя использовать пустой объект");
+                            logger.warn("нельзя использовать пустой объект");
                         }
                     }
 
@@ -538,22 +550,22 @@ widnth: 120px !important;
                             notify(`Бот завершил работу`)
                         }).catch(err => {
                             if (err.name == "xmlDataJs") {
-                                console.warn("В ответе содержится JS. Выполняем его", err);
+                                logger.warn("В ответе содержится JS. Выполняем его", err);
                                 unsafeWindow.eval(err.js);
                             } else if (err.name == "BattleBegin") {
                                 notify("Атакуем монстра!");
-                                console.warn("Начинаем бой", err);
+                                logger.warn("Начинаем бой", err);
                                 cmd("attack", { objectId: err.mob.id })
                                     .then(res => {
-                                        console.log("не удалось начать бой", res);
+                                        logger.log("не удалось начать бой", res);
                                         setTimeout(() => {
                                             unsafeWindow.location.reload();
                                         }, 10000);
-                                    }).catch(console.error)
+                                    }).catch(logger.error)
                             } else if (err.name == "jsToBattle") {
-                                console.error("Начинаем бой", err);
+                                logger.error("Начинаем бой", err);
                             } else {
-                                console.error("В работе бота произошла ошибка", err);
+                                logger.error("В работе бота произошла ошибка", err);
                                 notify(`В работе бота произошла ошибка <br/>[${err.message}]`, true);
                                 this.stopBot();
                             }
@@ -572,8 +584,8 @@ widnth: 120px !important;
         });
 
         function notify(msg, err, title = "") {
-            if (err) console.error(msg, err, title);
-            else console.log(msg, err, title);
+            if (err) logger.error(msg, err, title);
+            else logger.log(msg, err, title);
             showNotification(msg, err, "[BOT]" + title);
         }
 
@@ -627,10 +639,10 @@ widnth: 120px !important;
             const dungeId = dungeCfg.datastorage.mainwinlib.path;
             const xmlData = await cmd("updateXML");
             app.setDungeId.call(app, dungeId);
-            console.log('dungeCfg', dungeCfg);
-            console.log('xmlData', xmlData);
-        })().catch(console.error);
-
-
+            logger.log('dungeCfg loaded', dungeCfg);
+            logger.log('xmlData loaded', xmlData);
+        })().catch((err => {
+            logger.error("ошибка инициализации", err.message, err)
+        }));
     }
 })();
