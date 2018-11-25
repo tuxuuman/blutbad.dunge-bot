@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.4.0
+// @version      1.4.1
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -24,10 +24,10 @@
                 console.log(`======${(new Date).toLocaleString()}======\n`, ...args, '===============================\n\n');
             },
             warn(...args) {
-                console.warn(`======${(new Date).toLocaleString()}======\n`, ...args, '===============================\n\n');
+                console.warn(`******${(new Date).toLocaleString()}******\n`, ...args, '*******************************\n\n');
             },
             error(...args) {
-                console.error(`======${(new Date).toLocaleString()}======\n`, ...args, '===============================\n\n');
+                console.error(`######${(new Date).toLocaleString()}######\n`, ...args, '###############################\n\n');
             }
         }
 
