@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.4.5
+// @version      1.5.0
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -34,7 +34,62 @@
         logger.log("SCRIPT LOADED");
 
         let dungeCfg = null;
-        const actions = ["налево", "направо", "вверх", "вниз", "использовать", "установить_паузу"];
+
+        const actionsConfig = {
+            "налево": {
+                params: [
+                    {
+                        type: "number",
+                        default: 1
+                    }
+                ],
+                progress: true
+            },
+            "направо": {
+                params: [
+                    {
+                        type: "number",
+                        default: 1,
+                    }
+                ],
+                progress: true
+            },
+            "вверх": {
+                params: [
+                    {
+                        type: "number",
+                        default: 1,
+                    }
+                ],
+                progress: true
+            },
+            "вниз": {
+                params: [
+                    {
+                        type: "number",
+                        default: 1,
+                    }
+                ],
+                progress: true
+            },
+            "использовать": {
+                params: [
+                    {
+                        validate: (val) => ["слева", "справа", "снизу", "сверху"].includes(val),
+                        validateErrorMessage: `Возможные значиения: слева", справа, снизу", сверху`
+                    }
+                ]
+            },
+            "установить_паузу": {
+                params: [
+                    {
+                        type: "float",
+                        required: true
+                    }
+                ]
+            }
+        };
+
         let pauseDuration = 1;
 
         function alert(text) {
@@ -191,133 +246,116 @@
         }
 
         function parseActions(text) {
-            return text
-                .split("\n")
-                .map(str => {
-                    let actionData = str.split(" ").filter(a => a);
-                    if (actionData.length) {
-                        let actionName = actionData[0].toLowerCase();
-                        if (actions.includes(actionName)) {
-                            return {
-                                name: actionName,
-                                params: actionData.splice(1)
-                            };
+            let res = [];
+            text.split("\n").forEach((str, strIdx) => {
+                if (!str.length) return;
+
+                let actionData = str.split(" ").filter(a => a);
+                if (actionData.length) {
+                    let actionName = actionData[0].toLowerCase();
+                    let actionParams = actionData.splice(1);
+
+                    let action = {
+                        name: actionName,
+                        params: []
+                    };
+
+                    if (actionsConfig[actionName]) {
+                        let actionCfg = actionsConfig[actionName];
+                        if (actionCfg.params) {
+                            actionCfg.params.forEach((param, paramIdx) => {
+                                if (param.required && actionParams[paramIdx] === undefined) {
+                                    throw {
+                                        name: "UndefinedRequiredParams",
+                                        message: `Не указан требуемый параметр №${paramIdx + 1}. Команда: "${actionName}". Строка №${strIdx+1}`,
+                                        actionName,
+                                        actionIndex: strIdx
+                                    }
+                                } else if (actionParams[paramIdx] === undefined && param.default !== undefined) {
+                                    // если параметр не указан, то используем значение по умолчанию
+                                    action.params.push(param.default);
+                                } else if (typeof (param.validate) == "function" && actionParams[paramIdx] !== undefined) {
+                                    if (param.validate(actionParams[paramIdx])) {
+                                        action.params.push(actionParams[paramIdx]);
+                                    } else {
+                                        throw {
+                                            name: "ErrorValidateParams",
+                                            message: `Ошибка валидации параметра №${paramIdx + 1}. Команда: "${actionName}". Строка №${strIdx+1}. ${param.validateErrorMessage || ""}`,
+                                            actionName,
+                                            actionIndex: strIdx
+                                        }
+                                    }
+                                } else if (typeof (param.transform) == Function || param.type) {
+                                    let transform = param.transform || function (val) {
+                                        if (param.type == "number" || param.type == "float") {
+                                            let parsedVal = param.type == "number" ? parseInt(val) : parseFloat(val);
+                                            if (Number.isNaN(parsedVal)) {
+                                                throw {
+                                                    name: "ErrorValidateParams",
+                                                    message: `Ошибка валидации параметра №${paramIdx + 1}. Команда: "${actionName}". Строка №${strIdx+1}. Параметр должен быть числом`,
+                                                    actionName,
+                                                    actionIndex: strIdx
+                                                }
+                                            } else return parsedVal;
+                                            
+                                        } else {
+                                            return val;
+                                        }
+                                    };
+                                    action.params.push(transform(actionParams[paramIdx]));
+                                } else {
+                                    action.params.push(actionParams[paramIdx]);
+                                }
+                            });
+                        }
+                        res.push(action);
+                    } else {
+                        if (actionName.indexOf("#") !== 0) {
+                            throw {
+                                name: "UnknownCommandName",
+                                message: `Неизвестаня команда. Команда: "${actionName}". Строка №${strIdx+1}`,
+                                actionName,
+                                actionIndex: strIdx
+                            }
                         }
                     }
-                })
-                .filter(a => a);
+
+
+                }
+            });
+            return res;
         }
 
         //#region style and template
-        GM_addStyle(`
-.modal {
-    position: fixed;
-    z-index: 999;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgb(0,0,0);
-    background-color: rgba(0,0,0,0.4);
-}
-
-.modal-content {
-    background-color: #fefefe;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 300px;
-}
-
-.close {
-    color: #aaa;
-    float: right;
-    font-size: 15px;
-    font-weight: bold;
-}
-
-.close:hover,
-.close:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
-} 
-
-.action-editor {
-    padding: 10px;
-    border: 1px solid black;
-}
-
-.action-editor > textarea {
-    width: 100%;
-    height: 200px;
-    border: none;
-    resize: none;
-    padding: 0;
-}
-
-.way-viewer {
-    height: 200px;
-    border: 1px solid black;
-    overflow: auto;
-    padding: 10px;
-}
-
-.ways-info {
-    border-bottom: 1px solid black;
-}
-
-.xbbutton {
-widnth: 120px !important;
-}
-`);
-
-        const botVueTemplate = `
-<div id="bot-panel" class="modal" v-show="visible">
-
-  <div class="modal-content">
-    <span class="close" @click="visible = false">&times;</span>
-    <div id="botSettingsInfo"></div>
-   
-<div v-if="botStarted">
-Бот запущен!
-<button class="xbbutton" @click="stopBot()">Stop</button>
-</div>
-<div v-else>
-<div class="action-editor">
-                    <textarea
-                        autocomplete="off"
-                        autocorrect="off"
-                        autocapitalize="off"
-                        spellcheck="false"
-                        v-model="codeActions"
-                    ></textarea>
-</div>
-
-<div class="way-viewer">
-                    <div class="ways-info">
-                        Кол-во команд: {{ actions.length }}
-                    </div>
-                    <pre>{{ actions }}</pre>
-</div>
-<button class="xbbutton" @click="startBot(true)">Start</button>
-</div>
-
-  </div>
-
-</div>
-`;
+        GM_addStyle(`.modal { position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgb(0,0,0); background-color: rgba(0,0,0,0.4); } .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 300px; } .close { color: #aaa; float: right; font-size: 15px; font-weight: bold; } .close:hover, .close:focus { color: black; text-decoration: none; cursor: pointer; } .action-editor { padding: 10px; border: 1px solid black; } .action-editor > textarea { width: 100%; height: 200px; border: none; resize: none; padding: 0; } .way-viewer { height: 200px; border: 1px solid black; overflow: auto; padding: 10px; } .ways-info { border-bottom: 1px solid black; } .xbbutton { widnth: 120px !important; }`);
+        const botVueTemplate = ` <div id="bot-panel" class="modal" v-show="visible"> <div class="modal-content"> <span class="close" @click="visible = false">&times;</span> <div id="botSettingsInfo"></div> <div v-if="botStarted"> Бот запущен! <button class="xbbutton" @click="stopBot()">Stop</button> </div> <div v-else> <div class="action-editor"> <div style="color:red; margin-bottom: 5px;">{{ actionError }}</div> <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" v-model="codeActions" ></textarea> </div> <div class="way-viewer"> <div class="ways-info"> Кол-во команд: {{ actions.length }} </div> <pre>{{ actions }}</pre> </div> <button class="xbbutton" @click="startBot(true)">Start</button> </div> </div> </div> `;
         //#endregion
 
         $('body').append(botVueTemplate);
 
-        async function rotateTo(dir, rotateDir = "L") {
+        async function rotateTo(targetDirection, heroDirection) {
+            let direction = "L";
+
+            if (heroDirection == "w" && (targetDirection == "n")) {
+                // с запада на север
+                direction = "R"
+            } else if (heroDirection == "n" && (targetDirection == "e")) {
+                // с севера на восток
+                direction = "R"
+            } else if (heroDirection == "e" && (targetDirection == "s")) {
+                // с востока на юг
+                direction = "R"
+            } else if (heroDirection == "s" && (targetDirection == "w")) {
+                // с юга на запад
+                direction = "R"
+            } else {
+                direction = "L"
+            }
+
             while (true) {
-                let xmlData = await cmd("turnXML", {
-                    direction: rotateDir
-                });
-                if (xmlData.world.hero.direction.value == dir) {
+                let xmlData = await cmd("turnXML", { direction });
+
+                if (xmlData.world.hero.direction.value == targetDirection) {
                     return xmlData;
                 }
             }
@@ -335,7 +373,7 @@ widnth: 120px !important;
             return ways[x + "_" + y];
         }
 
-        function lookAround(ways, heroPosition) {
+        function lookAround(world, heroPosition) {
             let objects = {}
             let mods = [
                 [-1, 0, "w"],
@@ -345,8 +383,9 @@ widnth: 120px !important;
             ];
 
             for (let m of mods) {
-                let wayInfo = getWay(ways, heroPosition.x + m[0], heroPosition.y + m[1]);
-                if (wayInfo && wayInfo.type != "obj_grating_open" && (wayInfo.type.indexOf("obj_") == 0 || wayInfo.type.indexOf("bot_") == 0)) {
+                let wayInfo = findPointObject(heroPosition.x + m[0], heroPosition.y + m[1], world);
+
+                if (wayInfo && wayInfo.type != "obj_grating_open" && (wayInfo.type.indexOf("obj_") == 0 || wayInfo.type.indexOf("bot_") == 0  || wayInfo.type == "wall")) {
                     objects[m[2]] = wayInfo;
                 }
             }
@@ -354,13 +393,13 @@ widnth: 120px !important;
             return objects;
         }
 
-        async function excBotCommand(command) {
+        async function excBotCommand(command, commandNumber, commandProgress, dungeId) {
             logger.log("выполняется команда:" + command.name);
             let xmlData = await cmd("updateXML");
             let hero = xmlData.world.hero;
-            let ways = getWays(xmlData.world);
-            let objectsAround = lookAround(ways, hero.position);
 
+            let objectsAround = lookAround(xmlData.world, hero.position);
+            
             for (let obj of Object.values(objectsAround)) {
                 // если рядом есть моб то атакуем его
                 if (obj.type.indexOf("bot_") == 0) {
@@ -374,16 +413,18 @@ widnth: 120px !important;
             async function toStep(rotateDir) {
                 if (hero.direction.value != rotateDir) {
                     logger.log(`Разворачиваемся ${command.name}..`);
-                    await rotateTo(rotateDir);
+                    await rotateTo(rotateDir, hero.direction.value);
                 }
 
-                logger.log("Делаем шаг");
+                logger.log("Делаем шаг", rotateDir);
+                logger.log("objectsAround", objectsAround);
                 await cmd("moveXML", {
                     direction: "up"
                 });
 
                 if (objectsAround[rotateDir]) {
-                    notify("Невозможно сделать шаг. Мешает стена или объект.")
+                    logger.error("Невозможно сделать шаг. Мешает стена или объект.", objectsAround[rotateDir]);
+                    notify("Невозможно сделать шаг. Мешает стена или объект.");
                 }
             }
 
@@ -396,7 +437,8 @@ widnth: 120px !important;
                     }
 
                     notify(`Изменение паузе на ${pauseDuration} сек.`)
-                break;
+                    break;
+
                 case "налево":
                     await toStep("w");
                     break;
@@ -472,6 +514,7 @@ widnth: 120px !important;
             el: "#bot-panel",
             data() {
                 return {
+                    actionError: "",
                     botStarted: false,
                     dungeId: "",
                     __codeActions: "",
@@ -480,7 +523,14 @@ widnth: 120px !important;
             },
             computed: {
                 actions: function () {
-                    return parseActions(this.codeActions);
+                    let actions = [];
+                    try {
+                        actions = parseActions(this.codeActions);
+                        this.actionError = "";
+                    } catch (err) {
+                        this.actionError = err.message;
+                    }
+                    return actions;
                 },
                 codeActions: {
                     set(value) {
@@ -530,10 +580,10 @@ widnth: 120px !important;
                                 if (!currentAction) {
                                     return 1;
                                 } else {
-                                    let progress = botCfg.currentActionProgress;
-                                    let maxProgress = parseInt(currentAction.params[0]) || 1;
+                                    let progress =  botCfg.currentActionProgress;
+                                    let maxProgress = actionsConfig[currentAction.name].progress ? currentAction.params[0] : 1;
                                     if (progress < maxProgress) {
-                                        await excBotCommand(currentAction);
+                                        await excBotCommand(currentAction, botCfg.currentActionIndex, progress, self.dungeId);
                                         updateBotCfg(self.dungeId, { currentActionProgress: progress + 1 });
                                     } else {
                                         updateBotCfg(self.dungeId, { currentActionIndex: botCfg.currentActionIndex + 1, currentActionProgress: 0 });
