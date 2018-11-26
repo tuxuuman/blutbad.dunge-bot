@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.5.0
+// @version      1.5.1
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -303,7 +303,7 @@
                                         }
                                     };
                                     action.params.push(transform(actionParams[paramIdx]));
-                                } else {
+                                } else if(actionParams[paramIdx] !== undefined) {
                                     action.params.push(actionParams[paramIdx]);
                                 }
                             });
