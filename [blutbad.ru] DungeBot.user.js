@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.5.1
+// @version      1.5.2
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -89,8 +89,6 @@
                 ]
             }
         };
-
-        let pauseDuration = 1;
 
         function alert(text) {
             logger.log("ALERT", text);
@@ -235,14 +233,8 @@
             }
         }
 
-        function querystring(obj) {
-            return Object.keys(obj).reduce(function (str, key, i) {
-                var delimiter, val;
-                delimiter = (i === 0) ? '?' : '&';
-                key = encodeURIComponent(key);
-                val = encodeURIComponent(obj[key]);
-                return [str, delimiter, key, '=', val].join('');
-            }, '');
+        function querystring(params) {
+            return Object.keys(params).map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key])).join('&');
         }
 
         function parseActions(text) {
@@ -417,13 +409,13 @@
                 }
 
                 logger.log("Делаем шаг", rotateDir);
-                logger.log("objectsAround", objectsAround);
+                //logger.log("objectsAround", objectsAround);
                 await cmd("moveXML", {
                     direction: "up"
                 });
 
                 if (objectsAround[rotateDir]) {
-                    logger.error("Невозможно сделать шаг. Мешает стена или объект.", objectsAround[rotateDir]);
+                    logger.error("Невозможно сделать шаг. Мешает стена или объект.", `Команда: ${command.name}. Строка ${commandNumber}. Шаг ${commandProgress + 1}`, objectsAround[rotateDir]);
                     notify("Невозможно сделать шаг. Мешает стена или объект.");
                 }
             }
@@ -436,7 +428,10 @@
                         pauseDuration = 0
                     }
 
+                    updateBotCfg(dungeId, { pauseDuration });
+
                     notify(`Изменение паузе на ${pauseDuration} сек.`)
+                    
                     break;
 
                 case "налево":
@@ -588,7 +583,7 @@
                                     } else {
                                         updateBotCfg(self.dungeId, { currentActionIndex: botCfg.currentActionIndex + 1, currentActionProgress: 0 });
                                     }
-                                    await pause(pauseDuration);
+                                    await pause(botCfg.pauseDuration);
                                 }
                             }
                         })().then((status) => {
@@ -662,7 +657,8 @@
                 actionsCfg: "",
                 started: false,
                 currentActionIndex: 0,
-                currentActionProgress: 0
+                currentActionProgress: 0,
+                pauseDuration: 1
             };
         }
 
@@ -682,7 +678,8 @@
                 actionsCfg: "",
                 started: false,
                 currentActionIndex: 0,
-                currentActionProgress: 0
+                currentActionProgress: 0,
+                pauseDuration: 1
             }, cfg));
         }
 
