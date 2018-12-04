@@ -107,7 +107,7 @@
         }
 
         async function cmd(cmdName, query) {
-            let url = "http://damask.blutbad.ru/dungeon_xml.php" + querystring(Object.assign({ cmd: cmdName, nd: getCookie("nd") }, query)) + "&" + Math.random();
+            let url = "http://damask.blutbad.ru/dungeon_xml.php?" + querystring(Object.assign({ cmd: cmdName, nd: getCookie("nd") }, query)) + "&" + Math.random();
             let res = await fetch(url);
             let respText = await res.text();
             if (parser.validate(respText)) {
