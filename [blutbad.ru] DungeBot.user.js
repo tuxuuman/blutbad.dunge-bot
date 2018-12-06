@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.5.2
+// @version      1.5.4
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -139,11 +139,7 @@
                         } else {
                             if (xmlData.world.javascript) {
                                 if (xmlData.world.javascript.value.includes("toBattle")) {
-                                    throw {
-                                        message: "Вы находитесь в бою",
-                                        name: "jsToBattle",
-                                        js: xmlData.world.javascript.value
-                                    };
+                                    logger.warn("xmlData.world.javascript exist toBattle()");
                                 } else {
                                     //logger.log("Сервер прислал JS. Выполянем его...", xmlData.world.javascript.value)
                                     unsafeWindow.eval(xmlData.world.javascript.value);
@@ -509,14 +505,33 @@
             el: "#bot-panel",
             data() {
                 return {
+                    dungeCfg: null,
                     actionError: "",
                     botStarted: false,
-                    dungeId: "",
                     __codeActions: "",
                     visible: false
                 };
             },
+            created() {
+                getDungeCfg()
+                    .then(dungeCfg => {
+                        this.dungeCfg = dungeCfg;
+
+                        let cfg = loadBotCfg(this.dungeId);
+                        this.codeActions = cfg.actionsCfg;
+    
+                        if (cfg.started) {
+                            this.startBot();
+                        }
+                    })
+                    .catch((err => {
+                        logger.error("ошибка инициализации бота", err.message, err)
+                    }));
+            },
             computed: {
+                dungeId() {
+                    return dungeCfg ? this.dungeCfg.datastorage.mainwinlib.path : null;
+                },
                 actions: function () {
                     let actions = [];
                     try {
@@ -537,14 +552,6 @@
                 },
             },
             methods: {
-                setDungeId(id) {
-                    this.dungeId = id;
-                    let cfg = loadBotCfg(this.dungeId);
-                    this.codeActions = cfg.actionsCfg;
-                    if (cfg.started) {
-                        this.startBot();
-                    }
-                },
                 startBot(clicked) {
                     if (!this.actions.length) {
                         notify("Список действий не может быть пустым", true);
@@ -596,8 +603,7 @@
                                 logger.warn("В ответе содержится JS. Выполняем его", err);
                                 unsafeWindow.eval(err.js);
                             } else if (err.name == "BattleBegin") {
-                                notify("Атакуем монстра!");
-                                logger.warn("Начинаем бой", err);
+                                logger.warn("Атакуем монстра!", err.mob);
                                 cmd("attack", { objectId: err.mob.id })
                                     .then(res => {
                                         logger.error("Не удалось начать бой. Обновляем страницу...", res);
@@ -606,7 +612,7 @@
                                         }, 10000);
                                     }).catch(err => {
                                         if (err.name == "jsToBattle") {
-                                            logger.warn("Начался бой", err);
+                                            logger.warn("Переходим на страницу боя", err);
                                             unsafeWindow.location.href = '/fbattle.php?' + Math.random();
                                         } else {
                                             logger.error("Не удалось начать бой. Ошибка.", err.message, err);
@@ -652,50 +658,24 @@
 
         $('.right-col .buttons').append(botBtn);
 
-        function loadBotCfg(dungeId) {
-            return GM_getValue(dungeId) || {
-                actionsCfg: "",
-                started: false,
-                currentActionIndex: 0,
-                currentActionProgress: 0,
-                pauseDuration: 1
-            };
-        }
+        const DEFAULT_BOT_CFG = {
+            actionsCfg: "",
+            started: false,
+            currentActionIndex: 0,
+            currentActionProgress: 0,
+            pauseDuration: 1
+        };
 
-        function parseTypeDescription(dangeCfg) {
-            let res = {};
-            for (let type of dangeCfg.datastorage.typedescription.type) {
-                if (type.action) {
-                    let actiondescription = dangeCfg.datastorage.actiondescription.action.find((action => action.id == type.action.id));
-                    type.action.cmd = actiondescription.cmd;
-                }
-                res[type.id] = type;
-            }
+        function loadBotCfg(dungeId) {
+            return GM_getValue(dungeId, DEFAULT_BOT_CFG);
         }
 
         function setBotCfg(dungeId, cfg) {
-            GM_setValue(dungeId, Object.assign({
-                actionsCfg: "",
-                started: false,
-                currentActionIndex: 0,
-                currentActionProgress: 0,
-                pauseDuration: 1
-            }, cfg));
+            GM_setValue(dungeId, Object.assign(DEFAULT_BOT_CFG, cfg));
         }
 
         function updateBotCfg(dungeId, cfg) {
-            setBotCfg(dungeId, Object.assign(loadBotCfg(dungeId), cfg));
+            GM_setValue(dungeId, Object.assign(loadBotCfg(dungeId), cfg));
         }
-
-        (async function () {
-            const dungeCfg = await getDungeCfg();
-            const dungeId = dungeCfg.datastorage.mainwinlib.path;
-            const xmlData = await cmd("updateXML");
-            app.setDungeId.call(app, dungeId);
-            logger.log('dungeCfg loaded', dungeCfg);
-            logger.log('xmlData loaded', xmlData);
-        })().catch((err => {
-            logger.error("ошибка инициализации", err.message, err)
-        }));
     }
 })();
