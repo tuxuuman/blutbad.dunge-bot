@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.5.4
+// @version      1.5.5
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -117,8 +117,11 @@
                     attributeNamePrefix: ""
                 });
 
+                logger.log(cmdName, "xmlData", xmlData);
+
                 if (xmlData.javascript) {
                     if (xmlData.javascript.value.includes("toBattle")) {
+                        unsafeWindow.location.href = '/fbattle.php?' + Math.random();
                         throw {
                             message: "Вы находитесь в бою",
                             name: "jsToBattle",
@@ -382,7 +385,7 @@
         }
 
         async function excBotCommand(command, commandNumber, commandProgress, dungeId) {
-            logger.log("выполняется команда:" + command.name);
+            logger.log("выполняется команда:" + command.name + `[${commandNumber}:${commandProgress}]`);
             let xmlData = await cmd("updateXML");
             let hero = xmlData.world.hero;
 
@@ -606,21 +609,20 @@
                                 logger.warn("Атакуем монстра!", err.mob);
                                 cmd("attack", { objectId: err.mob.id })
                                     .then(res => {
-                                        logger.error("Не удалось начать бой. Обновляем страницу...", res);
-                                        setTimeout(() => {
-                                            unsafeWindow.location.reload();
-                                        }, 10000);
-                                    }).catch(err => {
-                                        if (err.name == "jsToBattle") {
+                                        if (res.world.javascript && res.world.javascript.value.includes("toBattle")) {
                                             logger.warn("Переходим на страницу боя", err);
                                             unsafeWindow.location.href = '/fbattle.php?' + Math.random();
                                         } else {
-                                            logger.error("Не удалось начать бой. Ошибка.", err.message, err);
+                                            logger.error("Не удалось начать бой. Обновляем страницу...", res);
+                                            setTimeout(() => {
+                                                unsafeWindow.location.reload();
+                                            }, 10000);
                                         }
+                                    }).catch(err => {
+                                        logger.error("Не удалось начать бой. Ошибка.", err.message, err);
                                     })
                             } else if (err.name == "jsToBattle") {
                                 logger.error("Начался бой", err);
-                                unsafeWindow.location.href = '/fbattle.php?' + Math.random();
                             } else {
                                 logger.error("В работе бота произошла ошибка", err);
                                 notify(`В работе бота произошла ошибка <br/>[${err.message}]`, true);
