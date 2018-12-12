@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.5.5
+// @version      1.5.6
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -116,8 +116,8 @@
                     parseAttributeValue: true,
                     attributeNamePrefix: ""
                 });
-
-                logger.log(cmdName, "xmlData", xmlData);
+                
+                logger.log("\n\n", cmdName, "xmlData", respText, "\n\n");
 
                 if (xmlData.javascript) {
                     if (xmlData.javascript.value.includes("toBattle")) {
@@ -125,12 +125,6 @@
                         throw {
                             message: "Вы находитесь в бою",
                             name: "jsToBattle",
-                            js: xmlData.javascript.value
-                        };
-                    } else {
-                        throw {
-                            message: "Сервер прислал JS код",
-                            name: "xmlDataJs",
                             js: xmlData.javascript.value
                         };
                     }
@@ -415,7 +409,6 @@
 
                 if (objectsAround[rotateDir]) {
                     logger.error("Невозможно сделать шаг. Мешает стена или объект.", `Команда: ${command.name}. Строка ${commandNumber}. Шаг ${commandProgress + 1}`, objectsAround[rotateDir]);
-                    notify("Невозможно сделать шаг. Мешает стена или объект.");
                 }
             }
 
@@ -602,10 +595,7 @@
                             }
                             notify(`Бот завершил работу`)
                         }).catch(err => {
-                            if (err.name == "xmlDataJs") {
-                                logger.warn("В ответе содержится JS. Выполняем его", err);
-                                unsafeWindow.eval(err.js);
-                            } else if (err.name == "BattleBegin") {
+                            if (err.name == "BattleBegin") {
                                 logger.warn("Атакуем монстра!", err.mob);
                                 cmd("attack", { objectId: err.mob.id })
                                     .then(res => {
