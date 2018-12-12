@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.5.6
+// @version      1.7.0
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -36,6 +36,15 @@
         let dungeCfg = null;
 
         const actionsConfig = {
+            "идти_до_упора": {
+                params: [
+                    {
+                        required: true,
+                        validate: (val) => ["вверх", "вниз", "налево", "направо"].includes(val),
+                        validateErrorMessage: `Возможные значиения: вверх, вниз, налево, направо`
+                    }
+                ]
+            },
             "налево": {
                 params: [
                     {
@@ -116,8 +125,8 @@
                     parseAttributeValue: true,
                     attributeNamePrefix: ""
                 });
-                
-                logger.log("\n\n", cmdName, "xmlData", respText, "\n\n");
+
+                //logger.log("\n\n", cmdName, "xmlData", respText, "\n\n");
 
                 if (xmlData.javascript) {
                     if (xmlData.javascript.value.includes("toBattle")) {
@@ -179,16 +188,7 @@
                 }
             }
 
-            return null;
-        }
-
-        function getWays(world) {
-            const ways = {};
-            for (let position of world.ways.position) {
-                let type = findPointObject(position.x, position.y, world);
-                ways[`${position.x}_${position.y}`] = type || position;
-            }
-            return ways;
+            return { x, y, type: "wall" };
         }
 
         function rnd(...args) {
@@ -252,7 +252,7 @@
                                 if (param.required && actionParams[paramIdx] === undefined) {
                                     throw {
                                         name: "UndefinedRequiredParams",
-                                        message: `Не указан требуемый параметр №${paramIdx + 1}. Команда: "${actionName}". Строка №${strIdx+1}`,
+                                        message: `Не указан требуемый параметр №${paramIdx + 1}. Команда: "${actionName}". Строка №${strIdx + 1}`,
                                         actionName,
                                         actionIndex: strIdx
                                     }
@@ -265,7 +265,7 @@
                                     } else {
                                         throw {
                                             name: "ErrorValidateParams",
-                                            message: `Ошибка валидации параметра №${paramIdx + 1}. Команда: "${actionName}". Строка №${strIdx+1}. ${param.validateErrorMessage || ""}`,
+                                            message: `Ошибка валидации параметра №${paramIdx + 1}. Команда: "${actionName}". Строка №${strIdx + 1}. ${param.validateErrorMessage || ""}`,
                                             actionName,
                                             actionIndex: strIdx
                                         }
@@ -277,18 +277,18 @@
                                             if (Number.isNaN(parsedVal)) {
                                                 throw {
                                                     name: "ErrorValidateParams",
-                                                    message: `Ошибка валидации параметра №${paramIdx + 1}. Команда: "${actionName}". Строка №${strIdx+1}. Параметр должен быть числом`,
+                                                    message: `Ошибка валидации параметра №${paramIdx + 1}. Команда: "${actionName}". Строка №${strIdx + 1}. Параметр должен быть числом`,
                                                     actionName,
                                                     actionIndex: strIdx
                                                 }
                                             } else return parsedVal;
-                                            
+
                                         } else {
                                             return val;
                                         }
                                     };
                                     action.params.push(transform(actionParams[paramIdx]));
-                                } else if(actionParams[paramIdx] !== undefined) {
+                                } else if (actionParams[paramIdx] !== undefined) {
                                     action.params.push(actionParams[paramIdx]);
                                 }
                             });
@@ -298,7 +298,7 @@
                         if (actionName.indexOf("#") !== 0) {
                             throw {
                                 name: "UnknownCommandName",
-                                message: `Неизвестаня команда. Команда: "${actionName}". Строка №${strIdx+1}`,
+                                message: `Неизвестаня команда. Команда: "${actionName}". Строка №${strIdx + 1}`,
                                 actionName,
                                 actionIndex: strIdx
                             }
@@ -354,10 +354,7 @@
             });
         }
 
-        function getWay(ways, x, y) {
-            return ways[x + "_" + y];
-        }
-
+        // насти все обхекты вокруг
         function lookAround(world, heroPosition) {
             let objects = {}
             let mods = [
@@ -370,7 +367,7 @@
             for (let m of mods) {
                 let wayInfo = findPointObject(heroPosition.x + m[0], heroPosition.y + m[1], world);
 
-                if (wayInfo && wayInfo.type != "obj_grating_open" && (wayInfo.type.indexOf("obj_") == 0 || wayInfo.type.indexOf("bot_") == 0  || wayInfo.type == "wall")) {
+                if (wayInfo.type != "obj_grating_open" && (wayInfo.type.indexOf("obj_") == 0 || wayInfo.type.indexOf("bot_") == 0 || wayInfo.type == "wall")) {
                     objects[m[2]] = wayInfo;
                 }
             }
@@ -378,13 +375,10 @@
             return objects;
         }
 
-        async function excBotCommand(command, commandNumber, commandProgress, dungeId) {
-            logger.log("выполняется команда:" + command.name + `[${commandNumber}:${commandProgress}]`);
-            let xmlData = await cmd("updateXML");
-            let hero = xmlData.world.hero;
+        // проверить есть ли рядом мобы и начать атаку в случае их обнаружения
+        function checkMonsters(world) {
+            let objectsAround = lookAround(world, world.hero.position);
 
-            let objectsAround = lookAround(xmlData.world, hero.position);
-            
             for (let obj of Object.values(objectsAround)) {
                 // если рядом есть моб то атакуем его
                 if (obj.type.indexOf("bot_") == 0) {
@@ -394,22 +388,42 @@
                     }
                 }
             }
+        }
+
+        async function excBotCommand(command, commandNumber, commandProgress, dungeId) {
+            logger.log("выполняется команда:" + command.name + `[${commandNumber}:${commandProgress}]`);
+
+            let xmlData = await cmd("updateXML");
+
+            checkMonsters(xmlData.world);
 
             async function toStep(rotateDir) {
-                if (hero.direction.value != rotateDir) {
+                if (xmlData.world.hero.direction.value != rotateDir) {
                     logger.log(`Разворачиваемся ${command.name}..`);
-                    await rotateTo(rotateDir, hero.direction.value);
+                    xmlData = await rotateTo(rotateDir, xmlData.world.hero.direction.value);
                 }
 
                 logger.log("Делаем шаг", rotateDir);
-                //logger.log("objectsAround", objectsAround);
-                await cmd("moveXML", {
+                
+                let moveResult = await cmd("moveXML", {
                     direction: "up"
                 });
 
-                if (objectsAround[rotateDir]) {
-                    logger.error("Невозможно сделать шаг. Мешает стена или объект.", `Команда: ${command.name}. Строка ${commandNumber}. Шаг ${commandProgress + 1}`, objectsAround[rotateDir]);
+                // если позиция игрока не изменилось то генерим ошибку
+                if (moveResult.world.hero.position.x == xmlData.world.hero.position.x &&
+                    moveResult.world.hero.position.y == xmlData.world.hero.position.y) {
+
+                    let objectsAround = lookAround(moveResult.world, moveResult.world.hero.position);
+
+                    throw {
+                        message: `Не удалось сделать шаг ${command.name}. Мешает "${objectsAround[rotateDir].type}"`,
+                        name: "ErrorStep",
+                        moveResult,
+                        object: objectsAround[rotateDir]
+                    }
                 }
+
+                return moveResult;
             }
 
             switch (command.name) {
@@ -423,7 +437,47 @@
                     updateBotCfg(dungeId, { pauseDuration });
 
                     notify(`Изменение паузе на ${pauseDuration} сек.`)
-                    
+
+                    break;
+
+                case "идти_до_упора":
+                    let stepDirection = "";
+
+                    switch (command.params[0]) {
+                        case "вверх":
+                            stepDirection = "n";
+                            break;
+
+                        case "вниз":
+                            stepDirection = "s";
+                            break;
+
+                        case "налево":
+                            stepDirection = "w";
+                            break;
+
+                        case "направо":
+                            stepDirection = "e";
+                            break;
+
+                        default: throw new Error(`Неизвестный параметр команды "идти_до_упора" - `, command.params[0]);
+                    }
+
+                    while(true) {
+                        try {
+                            xmlData = await toStep(stepDirection);
+                            checkMonsters(xmlData.world);
+                        } catch(err) {
+                            if (err.name == "ErrorStep") {
+                                xmlData = err.moveResult;
+                                checkMonsters(xmlData.world);
+                                logger.warn(`Бот уперся в "${err.object.type}"`);
+                                break;
+
+                            } else throw err;
+                        }
+                    }
+
                     break;
 
                 case "налево":
@@ -515,7 +569,7 @@
 
                         let cfg = loadBotCfg(this.dungeId);
                         this.codeActions = cfg.actionsCfg;
-    
+
                         if (cfg.started) {
                             this.startBot();
                         }
@@ -578,7 +632,7 @@
                                 if (!currentAction) {
                                     return 1;
                                 } else {
-                                    let progress =  botCfg.currentActionProgress;
+                                    let progress = botCfg.currentActionProgress;
                                     let maxProgress = actionsConfig[currentAction.name].progress ? currentAction.params[0] : 1;
                                     if (progress < maxProgress) {
                                         await excBotCommand(currentAction, botCfg.currentActionIndex, progress, self.dungeId);
