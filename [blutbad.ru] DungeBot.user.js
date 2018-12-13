@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         [blutbad.ru] DungeBot
 // @namespace    tuxuuman:blutbad:dangebot
-// @version      1.7.0
+// @version      1.7.1
 // @description  Бот для прохождения данжей
 // @author       tuxuuman<tuxuuman@gmail.com>
 // @match        http://damask.blutbad.ru/dungeon.php*
@@ -499,6 +499,7 @@
 
                 case "использовать":
                     let dungeCfg = await getDungeCfg();
+                    let objectsAround = lookAround(xmlData.world, xmlData.world.hero.position);
 
                     async function use(object) {
                         if (object) {
@@ -521,6 +522,7 @@
                     if (command.params.length) {
                         let [dir] = command.params;
                         let object = null;
+                        
 
                         switch (dir) {
                             case "слева":
